@@ -56,10 +56,4 @@ public class VoxelChunk : MonoBehaviour
             GenerateMesh();
         }
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
