@@ -14,10 +14,13 @@ public class VoxelChunk : MonoBehaviour
         public bool isActive;
     }
 
-    void Start()
+    private void Awake()
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
+        if (meshFilter == null) meshFilter = gameObject.AddComponent<MeshFilter>();
+
         meshCollider = gameObject.AddComponent<MeshCollider>();
+        if (meshCollider == null) meshCollider = gameObject.AddComponent<MeshCollider>();
         meshGenerator = new VoxelMeshGenerator();
 
         voxels = new Voxel[chunkSize,chunkSize,chunkSize];
@@ -41,8 +44,13 @@ public class VoxelChunk : MonoBehaviour
 
     public void GenerateMesh()
     {
+        if (meshFilter == null)
+        {
+            Debug.LogError("MeshFilter is missing" + gameObject.name);
+            return;
+        }
         Mesh mesh = meshGenerator.GenerateMesh(voxels, chunkSize);
-        MeshFilter.mesh = mesh;
+        meshFilter.mesh = mesh;
         meshCollider.sharedMesh = mesh;
     }
 
