@@ -36,19 +36,9 @@ public class VoxelMeshGenerator : MonoBehaviour
     void AddCubeMesh(int x, int y, int z, List<Vector3> vertices, List<int> triangles, List<Vector2> uvs)
     {
         Vector3 pos = new Vector3(x, y, z);
+        int vertIndex = vertices.Count;
 
-        vertices.Add(pos + new Vector3(0,0,1));
-        vertices.Add(pos + new Vector3(0, 0, 1));
-        vertices.Add(pos + new Vector3(0, 0, 1));
-        vertices.Add(pos + new Vector3(0, 0, 1));
-
-        int vertIndex = vertices.Count - 4;
-        triangles.Add(vertIndex);
-        triangles.Add(vertIndex + 1);
-        triangles.Add(vertIndex + 2);
-        triangles.Add(vertIndex);
-        triangles.Add(vertIndex + 2);
-        triangles.Add(vertIndex + 3);
+       
     }
 
 
