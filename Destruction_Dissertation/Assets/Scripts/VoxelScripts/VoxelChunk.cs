@@ -16,14 +16,20 @@ public class VoxelChunk : MonoBehaviour
 
     private void Awake()
     {
+        if (!gameObject.GetComponent<MeshRenderer>())
+        {
+            gameObject.AddComponent<MeshRenderer>().material = new Material(Shader.Find("White"));
+        }
+
         meshFilter = gameObject.AddComponent<MeshFilter>();
         if (meshFilter == null) meshFilter = gameObject.AddComponent<MeshFilter>();
 
         meshCollider = gameObject.AddComponent<MeshCollider>();
         if (meshCollider == null) meshCollider = gameObject.AddComponent<MeshCollider>();
-        meshGenerator = new VoxelMeshGenerator();
 
+        meshGenerator = new VoxelMeshGenerator();
         voxels = new Voxel[chunkSize,chunkSize,chunkSize];
+
         InitializeVoxels();
         GenerateMesh();
     }
@@ -49,9 +55,19 @@ public class VoxelChunk : MonoBehaviour
             Debug.LogError("MeshFilter is missing" + gameObject.name);
             return;
         }
+
         Mesh mesh = meshGenerator.GenerateMesh(voxels, chunkSize);
+
+        if(mesh == null || mesh.vertices.Length == 0)
+        {
+            Debug.LogError("Mesh Generation failed, No vertices found");
+            return;
+        }
+
         meshFilter.mesh = mesh;
         meshCollider.sharedMesh = mesh;
+
+        Debug.Log("Mesh Generated with " + mesh.vertices.Length + "Vertices");
     }
 
     public void DestroyVoxel(Vector3Int localPosition)

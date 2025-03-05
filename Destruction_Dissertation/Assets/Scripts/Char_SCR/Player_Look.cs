@@ -7,9 +7,11 @@ public class Player_Look : MonoBehaviour
 
     public float xSensitivty = 30f;
     public float ySensitivity = 30f;
+   
 
     public void ProcessLook(Vector2 input)
     {
+        Cursor.lockState = CursorLockMode.Locked;
         float mouseX = input.x;
         float mouseY = input.y;
         //Camera rotation caluclation for up and down
