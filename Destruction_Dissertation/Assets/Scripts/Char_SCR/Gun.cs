@@ -77,12 +77,30 @@ public class Gun : MonoBehaviour
         //Check for hits
         Vector3 targetPoints;
         if (Physics.Raycast(ray, out hit))
+
             targetPoints = hit.point;
+
         else
             targetPoints = ray.GetPoint(5); // Point far from player as a debug for if hits nothing
 
         //Calculate direction 
         Vector3 directionWithoutSpread = targetPoints - attackingPoint.position;
+
+        //Voxel chunk destruction hit detections
+        VoxelChunk chunk = null;
+        if (hit.collider != null)
+        {
+            chunk = hit.collider.GetComponentInParent<VoxelChunk>();
+        }
+        if (chunk != null)
+        {
+            Vector3Int localVoxelPos = new Vector3Int(
+                Mathf.RoundToInt(hit.point.x - chunk.transform.position.x),
+                Mathf.RoundToInt(hit.point.y - chunk.transform.position.y),
+                Mathf.RoundToInt(hit.point.z - chunk.transform.position.z)
+                );
+            chunk.DestroyVoxel(localVoxelPos);
+        }
 
         //Spread
         float x = UnityEngine.Random.Range(-spread, spread);

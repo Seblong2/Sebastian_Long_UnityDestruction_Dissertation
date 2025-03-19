@@ -8,6 +8,7 @@ public class VoxelChunk : MonoBehaviour
     private MeshFilter meshFilter;
     private MeshCollider meshCollider;
     private VoxelMeshGenerator meshGenerator;
+    public GameObject voxelprefab;
 
     public struct Voxel
     {
