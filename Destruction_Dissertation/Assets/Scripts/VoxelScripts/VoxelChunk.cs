@@ -16,9 +16,10 @@ public class VoxelChunk : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("Chunk awake" + gameObject.name);
         if (!gameObject.GetComponent<MeshRenderer>())
         {
-            gameObject.AddComponent<MeshRenderer>().material = new Material(Shader.Find("White"));
+            gameObject.AddComponent<MeshRenderer>().material = new Material(Shader.Find("Standard"));
         }
 
         meshFilter = gameObject.AddComponent<MeshFilter>();

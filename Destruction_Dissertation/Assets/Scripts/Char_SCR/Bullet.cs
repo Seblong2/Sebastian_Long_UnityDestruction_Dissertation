@@ -4,30 +4,22 @@ using System.Collections.Generic;
 
 public class Bullet : MonoBehaviour
 {
-    public float life = 3;
+    public float breakForce = 10f;
+    public float breakRadius = 0.2f;
 
-     void Awake()
+    void OnCollisionEnter(Collision collision)
     {
-        Destroy(gameObject, life);
-    }
-
-     void OnCollisionEnter(Collision collision)
-    {
-        VoxelChunk chunk = collision.gameObject.GetComponent<VoxelChunk>();
-        if (chunk != null)
+       Fracture_Pipeline fracture_Pipeline = collision.gameObject.GetComponentInParent<Fracture_Pipeline>();
+        if ( fracture_Pipeline != null )
         {
-            //CONVERTING THE WORLD POSITION TO THE LOCAL VOXEL POSITION 
-            Vector3 localHit = collision.contacts[0].point - chunk.transform.position;
-            Vector3Int voxelPosition = new Vector3Int(
-                Mathf.RoundToInt(localHit.x), 
-                Mathf.RoundToInt(localHit.y), 
-                Mathf.RoundToInt(localHit.z)
-                );
+            Vector3 hitPoint = collision.contacts[0].point;
 
-            chunk.DestroyVoxel( voxelPosition );
+            Vector3 force = collision.impulse;
+
+            fracture_Pipeline.Fracture( hitPoint, force );
+
         }
-        
+
         Destroy(gameObject);
-        
     }
 }
