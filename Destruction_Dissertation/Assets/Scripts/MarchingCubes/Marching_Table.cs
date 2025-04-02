@@ -9,26 +9,88 @@ public class Marching_Table : MonoBehaviour
 
     MeshFilter meshFilter;
 
-    int configIndex;
+
+    float terrainSurface = 0.5f;
+    int width = 32;
+    int height = 8;
+    float[,,] terrainMap;
+
+    int configIndex = -1;
 
     private void Start()
     {
         meshFilter = GetComponent<MeshFilter>();
+        terrainMap = new float[width + 1, height + 1, width + 1];
+
+        PopulateTerrain();
+        CreateMeshData();
+        BuildMesh();
     }
 
-    private void Update()
+
+    void PopulateTerrain()
     {
-        if(Input.GetKeyDown(KeyCode.Space))
+        for(int x = 0; x < width + 1; x++)
         {
-            configIndex++;
-            ClearMeshData();
-            MarchCube(Vector3.zero, configIndex);
-            BuildMesh();
+            for (int y = 0; y < height + 1; y++)
+            {
+                for (int z = 0; z < width + 1; z++)
+                {
+                    float thisHeight = (float)height * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f);
+
+                    float point = 0;
+
+                    if (y <= thisHeight - 0.5f)
+                        point = 0f;
+                    else if (y > thisHeight + 0.5f)
+                        point = 1f;
+                    else if (y > thisHeight)
+                        point = (float)y - thisHeight;
+                    else 
+                        point = thisHeight - (float)y;
+                    terrainMap[x, y, z] = point;
+                }
+            }
         }
     }
 
-    void MarchCube(Vector3 position, int configIndex)
+    void CreateMeshData()
     {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                for (int z = 0; z < width; z++)
+                {
+                    float[] cube = new float[8];
+                    for(int i = 0; i < 8; i++)
+                    {
+                        Vector3Int corner = new Vector3Int(x, y, z) + CornerTable[i];
+                        cube[i] = terrainMap[corner.x, corner.y, corner.z];
+                    }
+
+                    MarchCube(new Vector3(x, y, z), cube);
+                }
+            }
+        }
+    }
+
+    int GetCubeConfig(float[] cube)
+    {
+        int configIndex = 0;
+        for(int i = 0; i < 8; i++)
+        {
+            if (cube[i] > terrainSurface)
+                configIndex |= 1 << i;
+        }
+
+        return configIndex;
+    }
+
+    void MarchCube(Vector3 position, float[] cube)
+    {
+        int configIndex = GetCubeConfig(cube);
+
         if (configIndex == 0 || configIndex == 255)
             return;
 
@@ -37,13 +99,13 @@ public class Marching_Table : MonoBehaviour
         {
             for(int p =0; p < 3; p++)
             {
-                int indice = CubeTriangles[configIndex, edgeIndex];
+                int indice = TriangleTable[configIndex, edgeIndex];
 
                 if (indice == -1)
                     return;
 
-                Vector3 vert1 = position + CubeEdges[indice, 0];
-                Vector3 vert2 = position + CubeEdges[indice, 1];
+                Vector3 vert1 = position + EdgeTable[indice, 0];
+                Vector3 vert2 = position + EdgeTable[indice, 1];
 
                 Vector3 vertPos = (vert1 + vert2) / 2f;
 
@@ -60,6 +122,7 @@ public class Marching_Table : MonoBehaviour
         vertices.Clear();
         triangles.Clear();
     }
+
     void BuildMesh()
     {
         Mesh mesh = new Mesh();
@@ -68,36 +131,39 @@ public class Marching_Table : MonoBehaviour
         mesh.RecalculateNormals();
         meshFilter.mesh = mesh;
     }
-    public static Vector3Int[] CubeCorners = new Vector3Int[8]
-    {
-        new Vector3Int(0,0,0),
-        new Vector3Int(1,0,0),
-        new Vector3Int(1,1,0),
-        new Vector3Int(0,1,0),
-        new Vector3Int(0,0,1),
-        new Vector3Int(1,0,1),
-        new Vector3Int(1,1,1),
-        new Vector3Int(0,1,1),
+
+    Vector3Int[] CornerTable = new Vector3Int[8] {
+
+        new Vector3Int(0, 0, 0),
+        new Vector3Int(1, 0, 0),
+        new Vector3Int(1, 1, 0),
+        new Vector3Int(0, 1, 0),
+        new Vector3Int(0, 0, 1),
+        new Vector3Int(1, 0, 1),
+        new Vector3Int(1, 1, 1),
+        new Vector3Int(0, 1, 1)
+
     };
 
-    public static Vector3[,] CubeEdges = new Vector3[12, 2]
-    {
-        { new Vector3(0.0f,0.0f,0.0f), new Vector3(1.0f,0.0f,0.0f) },
-        { new Vector3(1.0f,0.0f,0.0f), new Vector3(1.0f,1.0f,0.0f) },
-        { new Vector3(0.0f,1.0f,0.0f), new Vector3(1.0f,1.0f,0.0f) },
-        { new Vector3(0.0f,0.0f,0.0f), new Vector3(0.0f,1.0f,0.0f) },
-        { new Vector3(0.0f,0.0f,1.0f), new Vector3(1.0f,0.0f,1.0f) },
-        { new Vector3(1.0f,0.0f,1.0f), new Vector3(1.0f,1.0f,1.0f) },
-        { new Vector3(0.0f,1.0f,1.0f), new Vector3(1.0f,1.0f,1.0f) },
-        { new Vector3(0.0f,0.0f,1.0f), new Vector3(0.0f,1.0f,1.0f) },
-        { new Vector3(0.0f,0.0f,0.0f), new Vector3(0.0f,0.0f,1.0f) },
-        { new Vector3(1.0f,0.0f,0.0f), new Vector3(1.0f,0.0f,1.0f) },
-        { new Vector3(1.0f,1.0f,0.0f), new Vector3(1.0f,1.0f,1.0f) },
-        { new Vector3(0.0f,1.0f,0.0f), new Vector3(0.0f,1.0f,1.0f) }
+    Vector3[,] EdgeTable = new Vector3[12, 2] {
+
+        { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 0.0f, 0.0f) },
+        { new Vector3(1.0f, 0.0f, 0.0f), new Vector3(1.0f, 1.0f, 0.0f) },
+        { new Vector3(0.0f, 1.0f, 0.0f), new Vector3(1.0f, 1.0f, 0.0f) },
+        { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(0.0f, 1.0f, 0.0f) },
+        { new Vector3(0.0f, 0.0f, 1.0f), new Vector3(1.0f, 0.0f, 1.0f) },
+        { new Vector3(1.0f, 0.0f, 1.0f), new Vector3(1.0f, 1.0f, 1.0f) },
+        { new Vector3(0.0f, 1.0f, 1.0f), new Vector3(1.0f, 1.0f, 1.0f) },
+        { new Vector3(0.0f, 0.0f, 1.0f), new Vector3(0.0f, 1.0f, 1.0f) },
+        { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(0.0f, 0.0f, 1.0f) },
+        { new Vector3(1.0f, 0.0f, 0.0f), new Vector3(1.0f, 0.0f, 1.0f) },
+        { new Vector3(1.0f, 1.0f, 0.0f), new Vector3(1.0f, 1.0f, 1.0f) },
+        { new Vector3(0.0f, 1.0f, 0.0f), new Vector3(0.0f, 1.0f, 1.0f) }
+
     };
 
-    public static int[,] CubeTriangles = new int[,]
-    {
+    private int[,] TriangleTable = new int[,] {
+
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -356,4 +422,5 @@ public class Marching_Table : MonoBehaviour
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 
     };
+
 }
