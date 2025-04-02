@@ -2,8 +2,72 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class Marching_Table 
+public class Marching_Table : MonoBehaviour
 {
+    List<Vector3> vertices = new List<Vector3>();
+    List<int> triangles = new List<int>();
+
+    MeshFilter meshFilter;
+
+    int configIndex;
+
+    private void Start()
+    {
+        meshFilter = GetComponent<MeshFilter>();
+    }
+
+    private void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.Space))
+        {
+            configIndex++;
+            ClearMeshData();
+            MarchCube(Vector3.zero, configIndex);
+            BuildMesh();
+        }
+    }
+
+    void MarchCube(Vector3 position, int configIndex)
+    {
+        if (configIndex == 0 || configIndex == 255)
+            return;
+
+        int edgeIndex = 0;
+        for(int i = 0; i < 5; i++)
+        {
+            for(int p =0; p < 3; p++)
+            {
+                int indice = CubeTriangles[configIndex, edgeIndex];
+
+                if (indice == -1)
+                    return;
+
+                Vector3 vert1 = position + CubeEdges[indice, 0];
+                Vector3 vert2 = position + CubeEdges[indice, 1];
+
+                Vector3 vertPos = (vert1 + vert2) / 2f;
+
+                vertices.Add(vertPos);
+                triangles.Add(vertices.Count - 1);
+                edgeIndex++;
+
+            }
+        }
+    }
+
+    void ClearMeshData()
+    {
+        vertices.Clear();
+        triangles.Clear();
+    }
+    void BuildMesh()
+    {
+        Mesh mesh = new Mesh();
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+        meshFilter.mesh = mesh;
+    }
     public static Vector3Int[] CubeCorners = new Vector3Int[8]
     {
         new Vector3Int(0,0,0),
