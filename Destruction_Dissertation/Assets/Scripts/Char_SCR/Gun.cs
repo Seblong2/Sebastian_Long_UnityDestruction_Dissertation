@@ -81,7 +81,7 @@ public class Gun : MonoBehaviour
             targetPoints = hit.point;
 
         else
-            targetPoints = ray.GetPoint(1); // Point far from player as a debug for if hits nothing
+            targetPoints = ray.GetPoint(5); // Point far from player as a debug for if hits nothing
 
         //Calculate direction 
         Vector3 directionWithoutSpread = targetPoints - attackingPoint.position;
