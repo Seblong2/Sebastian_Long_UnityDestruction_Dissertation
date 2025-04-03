@@ -8,8 +8,8 @@ public class New_gun : MonoBehaviour
     public Camera cam;
 
     public WorldGenMarching world;
- 
-    
+
+
 
     private void Update()
     {
@@ -19,7 +19,7 @@ public class New_gun : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
 
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(1))
         {
             Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f)); //Ray in the center of viewpoint from camera
             RaycastHit hit;
@@ -35,7 +35,7 @@ public class New_gun : MonoBehaviour
             }
         }
 
-        if (Input.GetMouseButtonDown(1))
+        if (Input.GetMouseButtonDown(0))
         {
             Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f)); //Ray in the center of viewpoint from camera
             RaycastHit hit;
@@ -47,6 +47,23 @@ public class New_gun : MonoBehaviour
                 {
                     world.GetChunkFromV3(hit.transform.position).DestroyTerrain(hit.point);
 
+                }
+                if (hit.transform.CompareTag ("FractureWall"))
+                {
+                    Debug.Log("Wall Hit " + hit.transform.name);
+                   Fracture_SubFracture fracturedPieces = hit.transform.GetComponent<Fracture_SubFracture>();
+
+                    if (fracturedPieces != null) 
+                    {
+                        Vector3 forceDirection = (hit.transform.position - hit.point).normalized;
+                        float forceAmount = 10f;
+
+                        fracturedPieces.ApplyForce(forceDirection * forceAmount);
+
+                        //fracturedPieces.transform.Translate(forceDirection * forceAmount * Time.deltaTime, Space.World);
+
+                       // fracturedPieces.transform.Rotate(Vector3.up, 50f * Time.deltaTime, Space.World);
+                    }
                 }
             }
         }

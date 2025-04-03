@@ -17,6 +17,7 @@ public class MarchingChunk
     MeshFilter meshFilter;
     MeshCollider meshCollider;
     MeshRenderer meshRenderer;
+    public float DestructionRadius = 10f;
 
     Vector3Int ChunkPos;
 
@@ -141,6 +142,28 @@ public class MarchingChunk
                 Vector3 vert2 = position + GameData.CornerTable[GameData.EdgeIndexes[indice, 1]];
 
 
+                Vector3 vertPos;
+
+              
+                    //Getting terrain values at the end of the current edge from the cube array that is created about
+                    float vert1Sample = cube[GameData.EdgeIndexes[indice, 0]];
+                    float vert2Sample = cube[GameData.EdgeIndexes[indice, 1]];
+
+                    //Calucations for the difference between terrain values
+                    float difference = vert2Sample - vert1Sample;
+
+                    //If the difference is 0 then pass terrain through middle
+                    if (difference == 0)
+                        difference = terrainSurface;
+                    else
+                        difference = (terrainSurface - vert1Sample) / difference;
+
+                    //Calculating the point along the cube edge that passes through
+                    vertPos = vert1 + ((vert2 - vert1) * difference);
+                
+             
+                    triangles.Add(VertForIndice(vertPos));
+                
 
              
                 edgeIndex++;
@@ -170,6 +193,7 @@ public class MarchingChunk
         Vector3Int v3Int = new Vector3Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
         v3Int -= ChunkPos;
         terrainMap[v3Int.x, v3Int.y, v3Int.z] = 1f;
+        ClearMeshData();
         CreateMeshData();
     }
 

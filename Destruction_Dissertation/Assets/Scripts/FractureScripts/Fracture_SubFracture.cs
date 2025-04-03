@@ -17,6 +17,13 @@ public class Fracture_SubFracture : MonoBehaviour
         GetComponent<Rigidbody>().isKinematic = true;
     }
 
+    public void ApplyForce(Vector3 force)
+    {
+        Rigidbody rb = GetComponent<Rigidbody>();
+        rb.isKinematic = false;
+        rb.AddForce(force);
+    }
+
     private void Update()
     {
         for (int i = 0; i < connections.Count; i++) // Checking for isolation in the fractions to ensure the one that is hit isnt isolated
