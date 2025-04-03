@@ -44,7 +44,7 @@ public class Marching_Table : MonoBehaviour
                 for (int z = 0; z < width + 1; z++)
                 {
                     float thisHeight = (float)height * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f);
-                        terrainMap[x, y, z] = y - thisHeight;
+                        terrainMap[x, y, z] = (float)y - thisHeight;
                 }
             }
         }
@@ -189,6 +189,13 @@ public class Marching_Table : MonoBehaviour
     public void DestroyTerrain(Vector3 pos)
     {
         Vector3Int v3Int = new Vector3Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
+        terrainMap[v3Int.x, v3Int.y, v3Int.z] = 1f;
+        CreateMeshData();
+    }
+
+    public void PlaceTerrain(Vector3 pos)
+    {
+        Vector3Int v3Int = new Vector3Int(Mathf.CeilToInt(pos.x), Mathf.CeilToInt(pos.y), Mathf.CeilToInt(pos.z));
         terrainMap[v3Int.x, v3Int.y, v3Int.z] = 0f;
         CreateMeshData();
     }
