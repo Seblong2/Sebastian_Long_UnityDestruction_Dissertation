@@ -7,6 +7,9 @@ public class Marching_Table : MonoBehaviour
     List<Vector3> vertices = new List<Vector3>();
     List<int> triangles = new List<int>();
 
+    public bool smoothTerrain;
+    public bool flatShaded;
+
     MeshFilter meshFilter;
 
 
@@ -14,6 +17,7 @@ public class Marching_Table : MonoBehaviour
     int width = 32;
     int height = 8;
     float[,,] terrainMap;
+    private float[,,] heights;
 
     int configIndex = -1;
 
@@ -37,18 +41,7 @@ public class Marching_Table : MonoBehaviour
                 for (int z = 0; z < width + 1; z++)
                 {
                     float thisHeight = (float)height * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f);
-
-                    float point = 0;
-
-                    if (y <= thisHeight - 0.5f)
-                        point = 0f;
-                    else if (y > thisHeight + 0.5f)
-                        point = 1f;
-                    else if (y > thisHeight)
-                        point = (float)y - thisHeight;
-                    else 
-                        point = thisHeight - (float)y;
-                    terrainMap[x, y, z] = point;
+                        terrainMap[x, y, z] = (float)y - thisHeight;
                 }
             }
         }
@@ -62,14 +55,8 @@ public class Marching_Table : MonoBehaviour
             {
                 for (int z = 0; z < width; z++)
                 {
-                    float[] cube = new float[8];
-                    for(int i = 0; i < 8; i++)
-                    {
-                        Vector3Int corner = new Vector3Int(x, y, z) + CornerTable[i];
-                        cube[i] = terrainMap[corner.x, corner.y, corner.z];
-                    }
-
-                    MarchCube(new Vector3(x, y, z), cube);
+                   
+                    MarchCube(new Vector3Int(x, y, z));
                 }
             }
         }
@@ -87,30 +74,92 @@ public class Marching_Table : MonoBehaviour
         return configIndex;
     }
 
-    void MarchCube(Vector3 position, float[] cube)
+    float SampleTerrain(Vector3Int point)
     {
+        return terrainMap[point.x, point.y, point.z];
+    }
+
+    int VertForIndice (Vector3 vert)
+    {
+        //Loop through all vertices in the current vertices list
+        for (int i = 0; i < vertices.Count; i ++)
+        {
+            //If vert matches then return the index to avoid duplication of vertices
+            if (vertices[i] == vert)
+                return i;
+        }
+
+        //If no match is found add this vert to list and return last known index.
+        vertices.Add(vert);
+        return vertices.Count - 1;
+    }
+
+    void MarchCube(Vector3Int position)
+    {
+        //Sample terrain values at each corner for the cube
+        float[] cube = new float[8];
+        for (int i = 0; i < 8; i++)
+        {
+            cube[i] = SampleTerrain(position + CornerTable[i]);
+        }
+
+
         int configIndex = GetCubeConfig(cube);
 
         if (configIndex == 0 || configIndex == 255)
             return;
 
         int edgeIndex = 0;
-        for(int i = 0; i < 5; i++)
+        for (int i = 0; i < 5; i++)
         {
-            for(int p =0; p < 3; p++)
+            for (int p = 0; p < 3; p++)
             {
                 int indice = TriangleTable[configIndex, edgeIndex];
 
                 if (indice == -1)
                     return;
 
-                Vector3 vert1 = position + EdgeTable[indice, 0];
-                Vector3 vert2 = position + EdgeTable[indice, 1];
+                Vector3 vert1 = position + CornerTable[EdgeIndexes[indice, 0]];
+                Vector3 vert2 = position + CornerTable[EdgeIndexes[indice, 1]];
 
-                Vector3 vertPos = (vert1 + vert2) / 2f;
 
-                vertices.Add(vertPos);
-                triangles.Add(vertices.Count - 1);
+                Vector3 vertPos;
+                if (smoothTerrain)
+                {
+                    //Getting terrain values at the end of the current edge from the cube array that is created about
+                    float vert1Sample = cube[EdgeIndexes[indice, 0]];
+                    float vert2Sample = cube[EdgeIndexes[indice, 1]];
+
+                    //Calucations for the difference between terrain values
+                    float difference = vert2Sample - vert1Sample;
+
+                    //If the difference is 0 then pass terrain through middle
+                    if (difference == 0)
+                        difference = terrainSurface;
+                    else
+                        difference = (terrainSurface - vert1Sample) / difference;
+
+                    //Calculating the point along the cube edge that passes through
+                    vertPos = vert1 + ((vert2 - vert1) * difference);
+                }
+                else
+                {
+                    // Get Edge midpoint
+                    vertPos = (vert1 + vert2) / 2f;
+                }
+
+                // Adding to vertices and triangle list and incrementing the edgeIndex
+                if (flatShaded)
+                {
+                    vertices.Add(vertPos);
+                    triangles.Add(vertices.Count - 1);
+                }
+                else
+                {
+                    triangles.Add(VertForIndice(vertPos));
+                }
+
+             
                 edgeIndex++;
 
             }
@@ -132,6 +181,25 @@ public class Marching_Table : MonoBehaviour
         meshFilter.mesh = mesh;
     }
 
+    public void DestroyTerrain(Vector3 position, float radius)
+    {
+        for(int x = 0; x < width + 1; x++)
+        {
+            for (int y = 0; y < height + 1; y++)
+            {
+                for (int z = 0; z < width + 1; z++)
+                {
+                    Vector3 point = new Vector3(x, y, z);
+
+                    if(Vector3.Distance(point, position) < radius)
+                    {
+                        heights[x, y, z] += 5f;
+                    }
+                }
+            }
+        }
+    }
+
     Vector3Int[] CornerTable = new Vector3Int[8] {
 
         new Vector3Int(0, 0, 0),
@@ -145,20 +213,9 @@ public class Marching_Table : MonoBehaviour
 
     };
 
-    Vector3[,] EdgeTable = new Vector3[12, 2] {
+    int[,] EdgeIndexes = new int[12, 2] {
 
-        { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 0.0f, 0.0f) },
-        { new Vector3(1.0f, 0.0f, 0.0f), new Vector3(1.0f, 1.0f, 0.0f) },
-        { new Vector3(0.0f, 1.0f, 0.0f), new Vector3(1.0f, 1.0f, 0.0f) },
-        { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(0.0f, 1.0f, 0.0f) },
-        { new Vector3(0.0f, 0.0f, 1.0f), new Vector3(1.0f, 0.0f, 1.0f) },
-        { new Vector3(1.0f, 0.0f, 1.0f), new Vector3(1.0f, 1.0f, 1.0f) },
-        { new Vector3(0.0f, 1.0f, 1.0f), new Vector3(1.0f, 1.0f, 1.0f) },
-        { new Vector3(0.0f, 0.0f, 1.0f), new Vector3(0.0f, 1.0f, 1.0f) },
-        { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(0.0f, 0.0f, 1.0f) },
-        { new Vector3(1.0f, 0.0f, 0.0f), new Vector3(1.0f, 0.0f, 1.0f) },
-        { new Vector3(1.0f, 1.0f, 0.0f), new Vector3(1.0f, 1.0f, 1.0f) },
-        { new Vector3(0.0f, 1.0f, 0.0f), new Vector3(0.0f, 1.0f, 1.0f) }
+        {0, 1}, {1, 2}, {3, 2}, {0, 3}, {4, 5}, {5, 6}, {7, 6}, {4, 7}, {0, 4}, {1, 5}, {2, 6}, {3, 7}, // Replaced old vector table with this int index as i can just point to the corner table vectors instead for optimisation
 
     };
 
