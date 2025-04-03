@@ -1,206 +1,23 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class Marching_Table : MonoBehaviour
+public static class GameData 
 {
-    List<Vector3> vertices = new List<Vector3>();
-    List<int> triangles = new List<int>();
-
-    public bool smoothTerrain;
-    public bool flatShaded;
-
-    MeshFilter meshFilter;
-    MeshCollider meshCollider;
 
 
-    float terrainSurface = 0.5f;
-    int width = 32;
-    int height = 8;
-    float[,,] terrainMap;
-    private float[,,] heights;
+    public static float terrainSurface = 0.5f;
+    public static int ChunkWidth = 16;
+    public static int ChunkHeight = 250;
 
-    //int configIndex = -1;
+    public static float BaseTerrainHeight = 0; // Minimum base height
+    public static float TerrainHeightRange = 10f; // Max height (about base height) our terrain can be, Basically the hills about the ground
 
-    private void Start()
+    public static float GetTerrainHeight (int x, int z)
     {
-        meshFilter = GetComponent<MeshFilter>();
-        meshCollider = GetComponent<MeshCollider>();
-        
-        terrainMap = new float[width + 1, height + 1, width + 1];
-
-        PopulateTerrain();
-        CreateMeshData();
-      
+        return (float)TerrainHeightRange * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f) + BaseTerrainHeight;
     }
 
 
-    void PopulateTerrain()
-    {
-        for(int x = 0; x < width + 1; x++)
-        {
-            for (int y = 0; y < height + 1; y++)
-            {
-                for (int z = 0; z < width + 1; z++)
-                {
-                    float thisHeight = (float)height * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f);
-                        terrainMap[x, y, z] = (float)y - thisHeight;
-                }
-            }
-        }
-    }
-
-    void CreateMeshData()
-    {
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                for (int z = 0; z < width; z++)
-                {
-                   
-                    MarchCube(new Vector3Int(x, y, z));
-                }
-            }
-        }
-        BuildMesh();
-    }
-
-    int GetCubeConfig(float[] cube)
-    {
-        int configIndex = 0;
-        for(int i = 0; i < 8; i++)
-        {
-            if (cube[i] > terrainSurface)
-                configIndex |= 1 << i;
-        }
-
-        return configIndex;
-    }
-
-    float SampleTerrain(Vector3Int point)
-    {
-        return terrainMap[point.x, point.y, point.z];
-    }
-
-    int VertForIndice (Vector3 vert)
-    {
-        //Loop through all vertices in the current vertices list
-        for (int i = 0; i < vertices.Count; i ++)
-        {
-            //If vert matches then return the index to avoid duplication of vertices
-            if (vertices[i] == vert)
-                return i;
-        }
-
-        //If no match is found add this vert to list and return last known index.
-        vertices.Add(vert);
-        return vertices.Count - 1;
-    }
-
-    void MarchCube(Vector3Int position)
-    {
-        //Sample terrain values at each corner for the cube
-        float[] cube = new float[8];
-        for (int i = 0; i < 8; i++)
-        {
-            cube[i] = SampleTerrain(position + CornerTable[i]);
-        }
-
-
-        int configIndex = GetCubeConfig(cube);
-
-        if (configIndex == 0 || configIndex == 255)
-            return;
-
-        int edgeIndex = 0;
-        for (int i = 0; i < 5; i++)
-        {
-            for (int p = 0; p < 3; p++)
-            {
-                int indice = TriangleTable[configIndex, edgeIndex];
-
-                if (indice == -1)
-                    return;
-
-                Vector3 vert1 = position + CornerTable[EdgeIndexes[indice, 0]];
-                Vector3 vert2 = position + CornerTable[EdgeIndexes[indice, 1]];
-
-
-                Vector3 vertPos;
-                if (smoothTerrain)
-                {
-                    //Getting terrain values at the end of the current edge from the cube array that is created about
-                    float vert1Sample = cube[EdgeIndexes[indice, 0]];
-                    float vert2Sample = cube[EdgeIndexes[indice, 1]];
-
-                    //Calucations for the difference between terrain values
-                    float difference = vert2Sample - vert1Sample;
-
-                    //If the difference is 0 then pass terrain through middle
-                    if (difference == 0)
-                        difference = terrainSurface;
-                    else
-                        difference = (terrainSurface - vert1Sample) / difference;
-
-                    //Calculating the point along the cube edge that passes through
-                    vertPos = vert1 + ((vert2 - vert1) * difference);
-                }
-                else
-                {
-                    // Get Edge midpoint
-                    vertPos = (vert1 + vert2) / 2f;
-                }
-
-                // Adding to vertices and triangle list and incrementing the edgeIndex
-                if (flatShaded)
-                {
-                    vertices.Add(vertPos);
-                    triangles.Add(vertices.Count - 1);
-                }
-                else
-                {
-                    triangles.Add(VertForIndice(vertPos));
-                }
-
-             
-                edgeIndex++;
-
-            }
-        }
-    }
-
-    void ClearMeshData()
-    {
-        vertices.Clear();
-        triangles.Clear();
-    }
-
-    void BuildMesh()
-    {
-        Mesh mesh = new Mesh();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-        meshFilter.mesh = mesh;
-        meshCollider.sharedMesh = mesh;
-    }
-
-    public void DestroyTerrain(Vector3 pos)
-    {
-        Vector3Int v3Int = new Vector3Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
-        terrainMap[v3Int.x, v3Int.y, v3Int.z] = 1f;
-        CreateMeshData();
-    }
-
-    public void PlaceTerrain(Vector3 pos)
-    {
-        Vector3Int v3Int = new Vector3Int(Mathf.CeilToInt(pos.x), Mathf.CeilToInt(pos.y), Mathf.CeilToInt(pos.z));
-        terrainMap[v3Int.x, v3Int.y, v3Int.z] = 0f;
-        CreateMeshData();
-    }
-
-    Vector3Int[] CornerTable = new Vector3Int[8] {
+    public static Vector3Int[] CornerTable = new Vector3Int[8] {
 
         new Vector3Int(0, 0, 0),
         new Vector3Int(1, 0, 0),
@@ -213,13 +30,13 @@ public class Marching_Table : MonoBehaviour
 
     };
 
-    int[,] EdgeIndexes = new int[12, 2] {
+    public static int[,] EdgeIndexes = new int[12, 2] {
 
-        {0, 1}, {1, 2}, {3, 2}, {0, 3}, {4, 5}, {5, 6}, {7, 6}, {4, 7}, {0, 4}, {1, 5}, {2, 6}, {3, 7}, // Replaced old vector table with this int index as i can just point to the corner table vectors instead for optimisation
+        {0, 1}, {1, 2}, {3, 2}, {0, 3}, {4, 5}, {5, 6}, {7, 6}, {4, 7}, {0, 4}, {1, 5}, {2, 6}, {3, 7} // Replaced old vector table with this int index as i can just point to the corner table vectors instead for optimisation
 
     };
 
-    private int[,] TriangleTable = new int[,] {
+   public static int[,] TriangleTable = new int[,] {
 
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
         {0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -479,5 +296,4 @@ public class Marching_Table : MonoBehaviour
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 
     };
-
 }

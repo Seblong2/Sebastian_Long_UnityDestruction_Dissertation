@@ -14,7 +14,7 @@ public class Gun : MonoBehaviour
     public float timeBetweenShots, spread, reloadTime, timeBetweenShooting;
     public int magsize, bulletsPerClick;
     public bool allowToHold;
-    private Marching_Table marchingTable;
+    private MarchingChunk marchingTable;
     int bulletsLeft, bulletsShot;
 
     //bools
@@ -36,7 +36,7 @@ public class Gun : MonoBehaviour
         //Mag is full check
         bulletsLeft = magsize;
         readyToShoot = true;
-        marchingTable = FindFirstObjectByType<Marching_Table>();
+        //marchingTable = FindFirstObjectByType<MarchingChunk>();
 
     }
 
@@ -82,7 +82,7 @@ public class Gun : MonoBehaviour
             targetPoints = hit.point;
             if (hit.transform.tag == "Terrain")
             {
-                hit.transform.GetComponent<Marching_Table>().DestroyTerrain(hit.point);
+                hit.transform.GetComponent<MarchingChunk>().DestroyTerrain(hit.point);
                 Debug.Log("Terrain Hit");
             }
         }
