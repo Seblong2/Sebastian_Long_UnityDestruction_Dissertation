@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class New_gun : MonoBehaviour
 {
-    [SerializeField] private Camera playerCamera;
+    [SerializeField] private Camera cam;
     [SerializeField] float range = 10f;
     [SerializeField] private float destructionRadius = 2f;
     [SerializeField] Marching_Table marchingTable;
@@ -12,20 +12,22 @@ public class New_gun : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            Shoot();
-        }
+            Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 1f)); //Ray in the center of viewpoint from camera
+            RaycastHit hit;
+
+            
+            
+            if (Physics.Raycast(ray, out hit))
+            {
+                
+                if (hit.transform.tag == "Terrain")
+                {
+                    hit.transform.GetComponent<Marching_Table>().DestroyTerrain(hit.point);
+                    
+                }
+            }
     }
 
-    private void Shoot()
-    {
-        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-
-        if(Physics.Raycast(ray, out RaycastHit hit, range))
-        {
-            if(marchingTable != null)
-            {
-                marchingTable.DestroyTerrain(hit.point, destructionRadius);
-            }
-        }
+  
     }
 }

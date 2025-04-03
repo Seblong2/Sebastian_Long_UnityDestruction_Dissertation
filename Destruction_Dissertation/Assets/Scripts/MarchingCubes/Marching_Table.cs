@@ -20,7 +20,7 @@ public class Marching_Table : MonoBehaviour
     float[,,] terrainMap;
     private float[,,] heights;
 
-    int configIndex = -1;
+    //int configIndex = -1;
 
     private void Start()
     {
@@ -31,7 +31,7 @@ public class Marching_Table : MonoBehaviour
 
         PopulateTerrain();
         CreateMeshData();
-        BuildMesh();
+      
     }
 
 
@@ -44,7 +44,7 @@ public class Marching_Table : MonoBehaviour
                 for (int z = 0; z < width + 1; z++)
                 {
                     float thisHeight = (float)height * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f);
-                        terrainMap[x, y, z] = (float)y - thisHeight;
+                        terrainMap[x, y, z] = y - thisHeight;
                 }
             }
         }
@@ -63,6 +63,7 @@ public class Marching_Table : MonoBehaviour
                 }
             }
         }
+        BuildMesh();
     }
 
     int GetCubeConfig(float[] cube)
@@ -185,23 +186,11 @@ public class Marching_Table : MonoBehaviour
         meshCollider.sharedMesh = mesh;
     }
 
-    public void DestroyTerrain(Vector3 position, float radius)
+    public void DestroyTerrain(Vector3 pos)
     {
-        for(int x = 0; x < width + 1; x++)
-        {
-            for (int y = 0; y < height + 1; y++)
-            {
-                for (int z = 0; z < width + 1; z++)
-                {
-                    Vector3 point = new Vector3(x, y, z);
-
-                    if(Vector3.Distance(point, position) < radius)
-                    {
-                        heights[x, y, z] += 5f;
-                    }
-                }
-            }
-        }
+        Vector3Int v3Int = new Vector3Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
+        terrainMap[v3Int.x, v3Int.y, v3Int.z] = 0f;
+        CreateMeshData();
     }
 
     Vector3Int[] CornerTable = new Vector3Int[8] {

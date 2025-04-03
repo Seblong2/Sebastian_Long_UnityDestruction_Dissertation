@@ -14,7 +14,7 @@ public class Gun : MonoBehaviour
     public float timeBetweenShots, spread, reloadTime, timeBetweenShooting;
     public int magsize, bulletsPerClick;
     public bool allowToHold;
-
+    private Marching_Table marchingTable;
     int bulletsLeft, bulletsShot;
 
     //bools
@@ -36,6 +36,7 @@ public class Gun : MonoBehaviour
         //Mag is full check
         bulletsLeft = magsize;
         readyToShoot = true;
+        marchingTable = FindFirstObjectByType<Marching_Table>();
 
     }
 
@@ -77,12 +78,18 @@ public class Gun : MonoBehaviour
         //Check for hits
         Vector3 targetPoints;
         if (Physics.Raycast(ray, out hit))
-
+        {
             targetPoints = hit.point;
-
+            if (hit.transform.tag == "Terrain")
+            {
+                hit.transform.GetComponent<Marching_Table>().DestroyTerrain(hit.point);
+                Debug.Log("Terrain Hit");
+            }
+        }
         else
+        {
             targetPoints = ray.GetPoint(5); // Point far from player as a debug for if hits nothing
-
+        }
         //Calculate direction 
         Vector3 directionWithoutSpread = targetPoints - attackingPoint.position;
 
@@ -126,7 +133,7 @@ public class Gun : MonoBehaviour
         bulletsShot++;
 
         //Invoke resetshot function (if not already invoked or reset)
-        if(allowInvoke)
+        if (allowInvoke)
         {
             Invoke("ResetShot", timeBetweenShooting);
             allowInvoke = true;
