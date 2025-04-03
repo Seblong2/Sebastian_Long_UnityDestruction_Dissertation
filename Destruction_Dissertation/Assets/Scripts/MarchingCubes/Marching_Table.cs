@@ -11,6 +11,7 @@ public class Marching_Table : MonoBehaviour
     public bool flatShaded;
 
     MeshFilter meshFilter;
+    MeshCollider meshCollider;
 
 
     float terrainSurface = 0.5f;
@@ -24,6 +25,8 @@ public class Marching_Table : MonoBehaviour
     private void Start()
     {
         meshFilter = GetComponent<MeshFilter>();
+        meshCollider = GetComponent<MeshCollider>();
+        
         terrainMap = new float[width + 1, height + 1, width + 1];
 
         PopulateTerrain();
@@ -179,6 +182,7 @@ public class Marching_Table : MonoBehaviour
         mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
         meshFilter.mesh = mesh;
+        meshCollider.sharedMesh = mesh;
     }
 
     public void DestroyTerrain(Vector3 position, float radius)

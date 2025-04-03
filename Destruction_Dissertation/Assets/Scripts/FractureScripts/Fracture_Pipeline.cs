@@ -36,7 +36,7 @@ public class Fracture_Pipeline : MonoBehaviour
                 {
                     cell.connections.Add(hitColliders[i].GetComponent<Fracture_SubFracture>());
                     hitColliders[i].GetComponent<Fracture_SubFracture>().connections.Add(cell);
-                    Debug.Log(cell.name + "_" + hitColliders[i].name);
+                    //Debug.Log(cell.name + "_" + hitColliders[i].name);
 
                 }
                 i++;
