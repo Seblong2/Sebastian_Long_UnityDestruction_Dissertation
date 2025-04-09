@@ -2,6 +2,10 @@ using UnityEngine;
 
 public static class VoxelData 
 {
+
+    public static readonly int ChunkWidth = 5;
+    public static readonly int ChunkHeight = 5;
+
     public static readonly Vector3[] voxelVerts = new Vector3[8]
     {
         new Vector3(0.0f, 0.0f, 0.0f), // Vert 0
@@ -22,5 +26,15 @@ public static class VoxelData
         {1, 5, 0, 0, 5, 4 }, // Bottom Face Index
         {4, 7, 0, 0, 7, 3 }, // Left Face Index
         {1, 2, 5, 5, 2, 6 }  // Right Face Index
+    };
+
+    public static readonly Vector2[] voxelUvs = new Vector2[6]
+    {
+        new Vector2(0.0f,0.0f),
+        new Vector2(0.0f,1.0f),
+        new Vector2(1.0f,0.0f),
+        new Vector2(1.0f,0.0f),
+        new Vector2(0.0f,1.0f),
+        new Vector2(1.0f,1.0f)
     };
 }
