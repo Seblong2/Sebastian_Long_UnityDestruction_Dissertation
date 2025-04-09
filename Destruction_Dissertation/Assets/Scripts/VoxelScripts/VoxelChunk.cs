@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
-using static UnityEditor.Searcher.SearcherWindow.Alignment;
+using System.Collections.Generic; 
 
 public class VoxelChunk : MonoBehaviour
 {
@@ -9,11 +8,36 @@ public class VoxelChunk : MonoBehaviour
     public MeshFilter meshFilter;
 
     int vertexIndex = 0;
-    List<Vector3> vertices = new List<Vector3>();
-    List<int> triangles = new List<int>();
-    List<Vector2> uvs = new List<Vector2>();
+    List<Vector3> vertices = new List<Vector3> ();
+    List<int> triangles = new List<int> ();
+    List<Vector2> uvs = new List<Vector2> ();
+
+    bool[,,] VoxelFaceMap = new bool[VoxelData.ChunkWidth, VoxelData.ChunkHeight, VoxelData.ChunkWidth];
 
     void Start()
+    {
+        PopulateFaceMap();
+        CreateChunkData();
+        MeshCreation();
+       
+    }
+
+
+    void PopulateFaceMap()// Populating the correct faces on the voxel cubes with meshes (This is so the inside faces dont get a mesh until exposed)
+    {
+        for (int y = 0; y < VoxelData.ChunkHeight; y++)
+        {
+            for (int x = 0; x < VoxelData.ChunkWidth; x++)
+            {
+                for (int z = 0; z < VoxelData.ChunkWidth; z++)
+                {
+                    VoxelFaceMap[x, y, z] = true;
+                }
+            }
+        }
+    }
+
+    void CreateChunkData() //Takes data from VoxelData and builds the voxels in a chunk in the set positions
     {
         for (int y = 0; y < VoxelData.ChunkHeight; y++)
         {
@@ -25,30 +49,47 @@ public class VoxelChunk : MonoBehaviour
                 }
             }
         }
-
-       
-       MeshCreation();
-    
     }
 
-    void AddVoxelDataToChunks(Vector3 pos)
+    bool checkVoxels(Vector3 pos)
+    {
+        int x = Mathf.FloorToInt(pos.x);
+        int y = Mathf.FloorToInt(pos.y);
+        int z = Mathf.FloorToInt(pos.z);
+
+        if (x < 0 || x > VoxelData.ChunkWidth - 1 || y < 0 || y > VoxelData.ChunkHeight - 1 || z < 0 || z > VoxelData.ChunkWidth - 1) // A clamp on the array size when checking faces to make sure its doesnt try to check outside of the set array bounds
+            return false;
+
+        return VoxelFaceMap [x, y, z];
+    }
+
+    void AddVoxelDataToChunks(Vector3 pos)// This is basically just the function for creating a single voxel
     {
         for (int p = 0; p < 6; p++)
         {
-            for (int i = 0; i < 6; i++)
+            if (!checkVoxels(pos + VoxelData.checkingForExposedFaces[p])) // Checking for offset voxels to make sure faces are being drawn in correct locations
             {
-                int triangleIndex = VoxelData.voxelTri[p, i]; // Pulling a number out of voxel data
-                vertices.Add(VoxelData.voxelVerts[triangleIndex] + pos); // using the number to add one of the vertices from the data table 
-                triangles.Add(vertexIndex);//Adding to the list 
-
-                uvs.Add(VoxelData.voxelUvs[i]);
-
-                vertexIndex++; //Incrementation
+                vertices.Add(pos + VoxelData.voxelVerts[VoxelData.voxelTri[p, 0]]);
+                vertices.Add(pos + VoxelData.voxelVerts[VoxelData.voxelTri[p, 1]]);
+                vertices.Add(pos + VoxelData.voxelVerts[VoxelData.voxelTri[p, 2]]);
+                vertices.Add(pos + VoxelData.voxelVerts[VoxelData.voxelTri[p, 3]]);
+                uvs.Add(VoxelData.voxelUvs[0]);
+                uvs.Add(VoxelData.voxelUvs[1]);
+                uvs.Add(VoxelData.voxelUvs[2]);
+                uvs.Add(VoxelData.voxelUvs[3]);
+                triangles.Add(vertexIndex);
+                triangles.Add(vertexIndex + 1);
+                triangles.Add(vertexIndex + 2);
+                triangles.Add(vertexIndex + 2);
+                triangles.Add(vertexIndex + 1);
+                triangles.Add(vertexIndex + 3);
+                vertexIndex += 4;
             }
         }
     }
+    
 
-    void MeshCreation()
+    void MeshCreation()// Mesh being added to the voxel
     {
         //Adding a mesh to the arrays when they are genrated
         Mesh mesh = new Mesh();
