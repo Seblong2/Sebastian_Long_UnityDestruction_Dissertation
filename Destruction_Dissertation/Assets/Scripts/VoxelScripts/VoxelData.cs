@@ -8,6 +8,13 @@ public static class VoxelData
     public static readonly int ChunkWidth = 15;
     public static readonly int ChunkHeight = 15;
 
+    public static readonly int TextureAtlasSizeInVoxels = 4; 
+    public static float NormalizedVoxelTextureSize
+    {
+        get
+        {return 1f / (float)TextureAtlasSizeInVoxels; } 
+    }
+
     public static readonly Vector3[] voxelVerts = new Vector3[8]// Getting all the vertices to draw the voxel
     {
         new Vector3(0.0f, 0.0f, 0.0f), // Vert 0
@@ -32,6 +39,7 @@ public static class VoxelData
 
     public static readonly int[,] voxelTri = new int[6, 4] // Six triangles per face on the voxel cube
     {
+
         // 0 1 2 2 1 3 Vertex index pattern
         {0, 3, 1, 2 }, // Back Face Index
         {5, 6, 4, 7 }, // Front Face Index
