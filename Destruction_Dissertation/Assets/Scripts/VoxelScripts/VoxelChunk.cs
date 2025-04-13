@@ -2,10 +2,11 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic; 
 
-public class VoxelChunk : MonoBehaviour
+public class VoxelChunk 
 {
-    public MeshRenderer meshRenderer;
-    public MeshFilter meshFilter;
+    GameObject chunkObject;
+    MeshRenderer meshRenderer;
+    MeshFilter meshFilter;
 
     int vertexIndex = 0;
     List<Vector3> vertices = new List<Vector3> ();
@@ -16,14 +17,21 @@ public class VoxelChunk : MonoBehaviour
 
     WorldVoxel worldVoxel;
 
-    void Start()
+ public VoxelChunk (WorldVoxel worldChunkConstructor)
     {
-        worldVoxel = GameObject.Find("WorldVoxel").GetComponent<WorldVoxel>();
+        worldVoxel = worldChunkConstructor;
+        chunkObject = new GameObject();
+        meshFilter = chunkObject.AddComponent<MeshFilter> ();
+        meshRenderer = chunkObject.AddComponent<MeshRenderer> ();
+
+        meshRenderer.material = worldVoxel.material;
+        chunkObject.transform.SetParent(worldVoxel.transform);
+
+        //worldVoxel = GameObject.Find("WorldVoxel").GetComponent<WorldVoxel>();
 
         PopulateFaceMap();
         CreateChunkData();
         MeshCreation();
-       
     }
 
 
@@ -36,13 +44,13 @@ public class VoxelChunk : MonoBehaviour
                 for (int z = 0; z < VoxelData.ChunkWidth; z++)
                 {
                     if (y < 1)
-                        VoxelFaceMap[x, y, z] = 0;
+                        VoxelFaceMap[x, y, z] = 1;
 
                     else if (y == VoxelData.ChunkHeight - 1)
-                        VoxelFaceMap[x, y, z] = 2;
+                        VoxelFaceMap[x, y, z] = 3;
 
                     else
-                        VoxelFaceMap[x, y, z] = 1;
+                        VoxelFaceMap[x, y, z] = 2;
                 }
             }
         }

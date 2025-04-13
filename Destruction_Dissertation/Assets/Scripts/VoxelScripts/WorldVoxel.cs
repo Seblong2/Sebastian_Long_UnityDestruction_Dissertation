@@ -5,7 +5,10 @@ public class WorldVoxel : MonoBehaviour
     public Material material;
     public VoxelType[] voxelTypes;
 
-
+    private void Start()
+    {
+        VoxelChunk newChunk = new VoxelChunk(this);
+    }
 }
 
 [System.Serializable]
