@@ -7,6 +7,7 @@ public static class VoxelData
 
     public static readonly int ChunkWidth = 15;
     public static readonly int ChunkHeight = 15;
+    public static readonly int WorldSizeChunks = 5;
 
     public static readonly int TextureAtlasSizeInVoxels = 4; 
     public static float NormalizedVoxelTextureSize

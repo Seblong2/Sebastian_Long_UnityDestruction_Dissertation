@@ -4,9 +4,12 @@ using System.Collections.Generic;
 
 public class VoxelChunk 
 {
+    public ChunkLocation chunkLocation;
+
     GameObject chunkObject;
     MeshRenderer meshRenderer;
     MeshFilter meshFilter;
+
 
     int vertexIndex = 0;
     List<Vector3> vertices = new List<Vector3> ();
@@ -17,8 +20,10 @@ public class VoxelChunk
 
     WorldVoxel worldVoxel;
 
- public VoxelChunk (WorldVoxel worldChunkConstructor)
+ public VoxelChunk (ChunkLocation _location, WorldVoxel worldChunkConstructor)
     {
+
+        chunkLocation = _location;
         worldVoxel = worldChunkConstructor;
         chunkObject = new GameObject();
         meshFilter = chunkObject.AddComponent<MeshFilter> ();
@@ -26,6 +31,8 @@ public class VoxelChunk
 
         meshRenderer.material = worldVoxel.material;
         chunkObject.transform.SetParent(worldVoxel.transform);
+        chunkObject.transform.position = new Vector3(chunkLocation.x * VoxelData.ChunkWidth, 0f, chunkLocation.z * VoxelData.ChunkWidth);
+        chunkObject.name = "VoxelChunk" + chunkLocation.x + ", " + chunkLocation.z;
 
         //worldVoxel = GameObject.Find("WorldVoxel").GetComponent<WorldVoxel>();
 
@@ -70,13 +77,23 @@ public class VoxelChunk
         }
     }
 
+    bool IsVoxelInChunk(int x, int y, int z)
+    {
+        if (x < 0 || x > VoxelData.ChunkWidth - 1 || y < 0 || y > VoxelData.ChunkHeight - 1 || z < 0 || z > VoxelData.ChunkWidth - 1)
+        
+            return false;
+            else
+            return true;
+        
+    }
+
     bool checkVoxels(Vector3 pos)
     {
         int x = Mathf.FloorToInt(pos.x);
         int y = Mathf.FloorToInt(pos.y);
         int z = Mathf.FloorToInt(pos.z);
 
-        if (x < 0 || x > VoxelData.ChunkWidth - 1 || y < 0 || y > VoxelData.ChunkHeight - 1 || z < 0 || z > VoxelData.ChunkWidth - 1) // A clamp on the array size when checking faces to make sure its doesnt try to check outside of the set array bounds
+        if (!IsVoxelInChunk(x, y, z)) // A clamp on the array size when checking faces to make sure its doesnt try to check outside of the set array bounds
             return false;
 
         return worldVoxel.voxelTypes[VoxelFaceMap  [x, y, z]].isSolid; //Converted to work with worldvoxel script and using a byte instead of bool
@@ -136,5 +153,18 @@ public class VoxelChunk
         uvs.Add(new Vector2(x, y + VoxelData.NormalizedVoxelTextureSize)); // 0,1 (Top Left)
         uvs.Add(new Vector2(x + VoxelData.NormalizedVoxelTextureSize, y)); // 1,0 (Bottom Right)
         uvs.Add(new Vector2(x + VoxelData.NormalizedVoxelTextureSize, y + VoxelData.NormalizedVoxelTextureSize)); // 1,1 (Top Right)
+    }
+}
+
+
+public class ChunkLocation // Position for chunk however, not in world space, this is chunk position in the chunk mapping array
+{
+    public int x;
+    public int z;
+
+    public ChunkLocation(int _x, int _z)
+    {
+        x = _x;
+        z = _z;
     }
 }

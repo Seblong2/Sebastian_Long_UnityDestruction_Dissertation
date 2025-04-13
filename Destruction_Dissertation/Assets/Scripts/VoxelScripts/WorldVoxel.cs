@@ -5,11 +5,31 @@ public class WorldVoxel : MonoBehaviour
     public Material material;
     public VoxelType[] voxelTypes;
 
+    VoxelChunk[,] voxelChunks = new VoxelChunk[VoxelData.WorldSizeChunks, VoxelData.WorldSizeChunks];
+
     private void Start()
     {
-        VoxelChunk newChunk = new VoxelChunk(this);
+        WorldGeneration();
+    }
+
+    void WorldGeneration()
+    {
+        for (int x = 0; x < VoxelData.WorldSizeChunks; x++)
+        {
+            for (int z = 0; z < VoxelData.WorldSizeChunks; z++)
+            {
+                CreateChunk(x, z);
+            }
+        }
+    }
+
+    void CreateChunk (int x, int z)
+    {
+        voxelChunks[x, z] = new VoxelChunk(new ChunkLocation(x, z), this);
     }
 }
+
+
 
 [System.Serializable]
 public class VoxelType
