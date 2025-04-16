@@ -50,14 +50,7 @@ public class VoxelChunk
             {
                 for (int z = 0; z < VoxelData.ChunkWidth; z++)
                 {
-                    if (y < 1)
-                        VoxelFaceMap[x, y, z] = 1;
-
-                    else if (y == VoxelData.ChunkHeight - 1)
-                        VoxelFaceMap[x, y, z] = 3;
-
-                    else
-                        VoxelFaceMap[x, y, z] = 2;
+                    VoxelFaceMap[x, y, z] = worldVoxel.GetVoxel(new Vector3(x, y, z) + position);
                 }
             }
         }
@@ -77,6 +70,17 @@ public class VoxelChunk
         }
     }
 
+    public bool isChunkActive // Getter for checking if chunk is active or not
+    {
+        get { return chunkObject.activeSelf; }
+        set { chunkObject.SetActive(value); }
+    }
+
+    public Vector3 position // Getter for chunk positions
+    {
+        get { return chunkObject.transform.position; }
+    }
+
     bool IsVoxelInChunk(int x, int y, int z)
     {
         if (x < 0 || x > VoxelData.ChunkWidth - 1 || y < 0 || y > VoxelData.ChunkHeight - 1 || z < 0 || z > VoxelData.ChunkWidth - 1)
@@ -94,7 +98,7 @@ public class VoxelChunk
         int z = Mathf.FloorToInt(pos.z);
 
         if (!IsVoxelInChunk(x, y, z)) // A clamp on the array size when checking faces to make sure its doesnt try to check outside of the set array bounds
-            return false;
+            return worldVoxel.voxelTypes[worldVoxel.GetVoxel(pos + position)].isSolid; // Looking for ID of block types and is inside the chunk to remove uneeded faces inside the chunk 
 
         return worldVoxel.voxelTypes[VoxelFaceMap  [x, y, z]].isSolid; //Converted to work with worldvoxel script and using a byte instead of bool
     }
