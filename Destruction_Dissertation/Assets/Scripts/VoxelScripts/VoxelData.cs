@@ -5,16 +5,16 @@ using System.Collections.Generic;
 public static class VoxelData 
 {
 
-    public static readonly int ChunkWidth = 15;
-    public static readonly int ChunkHeight = 15;
-    public static readonly int WorldSizeChunks = 100;
+    public static readonly int ChunkWidth = 16;
+    public static readonly int ChunkHeight = 128;
+    public static readonly int WorldSizeChunks = 10;
 
     public static int WorldSizeInVoxels
     {
         get { return WorldSizeChunks * ChunkWidth; }
     }
 
-    public static readonly int ViewDistanceInChunks = 1;
+    public static readonly int ViewDistanceInChunks = 5;
 
     public static readonly int TextureAtlasSizeInVoxels = 4; 
     public static float NormalizedVoxelTextureSize

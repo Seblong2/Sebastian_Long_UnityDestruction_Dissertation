@@ -64,7 +64,8 @@ public class VoxelChunk
             {
                 for (int z = 0; z < VoxelData.ChunkWidth; z++)
                 {
-                    AddVoxelDataToChunks(new Vector3(x, y, z));
+                    if (worldVoxel.voxelTypes[VoxelFaceMap[x, y, z]].isSolid)
+                        AddVoxelDataToChunks(new Vector3(x, y, z));
                 }
             }
         }
