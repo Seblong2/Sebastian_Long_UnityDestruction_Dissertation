@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class WorldVoxel : MonoBehaviour
@@ -11,16 +12,25 @@ public class WorldVoxel : MonoBehaviour
 
     VoxelChunk[,] voxelChunks = new VoxelChunk[VoxelData.WorldSizeChunks, VoxelData.WorldSizeChunks]; // Array for chunks and voxels that will generate in the world depending on size that is set
 
+    List<ChunkLocation> activeChunk = new List<ChunkLocation> ();
+    ChunkLocation playerChunkLocation;
+    ChunkLocation LastKnownChunkLocation;
+
+
     private void Start()
     {
         spawnPos = new Vector3((VoxelData.WorldSizeChunks * VoxelData.ChunkWidth) / 2f, VoxelData.ChunkHeight + 5f, (VoxelData.WorldSizeChunks * VoxelData.ChunkWidth) / 2f); // Spawns the player in the center of the amount of chunks
         WorldGeneration();
+        LastKnownChunkLocation = GetChunkFromPlayerPos(player.position);
         
     }
 
     private void Update()
     {
-        CheckingForViewDistance();
+       playerChunkLocation = GetChunkFromPlayerPos(player.position); // Checking for player location to optimise the view distance updating 
+
+        if (!playerChunkLocation.ChunkCheck(LastKnownChunkLocation))
+            CheckingForViewDistance();
     }
 
     void WorldGeneration()// This has been updated to work with view distance for optimisation purposes
@@ -44,21 +54,37 @@ public class WorldVoxel : MonoBehaviour
 
         return new ChunkLocation(x, z);
     }
-    void CheckingForViewDistance ()//Enable and disable chunks based on player location and the distance from them
+    void CheckingForViewDistance()//Enable and disable chunks based on player location and the distance from them
     {
-      ChunkLocation location = GetChunkFromPlayerPos(player.position);
+        ChunkLocation location = GetChunkFromPlayerPos(player.position);
 
-        for (int x = location.x - VoxelData.ViewDistanceInChunks; x < location.x + VoxelData.ViewDistanceInChunks; x++)
+        List<ChunkLocation> previousActiveChunk = new List<ChunkLocation>(activeChunk);//Currently active chunks on screen
+
+        for (int x = location.x - VoxelData.ViewDistanceInChunks; x < location.x + VoxelData.ViewDistanceInChunks; x++) //Checking which chunks are in the view distance from the player
         {
-            for (int z = location.z - VoxelData.ViewDistanceInChunks; z < location.z + VoxelData.ViewDistanceInChunks; z++)
+            for (int z = location.z - VoxelData.ViewDistanceInChunks; z < location.z + VoxelData.ViewDistanceInChunks; z++) //Checking which chunks are in the view distance from the player
             {
                 if (isChunkInWorld(new ChunkLocation(x, z)))
                 {
                     if (voxelChunks[x, z] == null)
                         CreateChunk(x, z);
+                    else if (!voxelChunks[x, z].isChunkActive)
+                    {
+                        voxelChunks[x, z].isChunkActive = true;
+                        activeChunk.Add(new ChunkLocation(x, z));
+                    }
+                }
+
+                for (int i = 0; i < previousActiveChunk.Count; i++)
+                {
+                    if (previousActiveChunk[i].ChunkCheck(new ChunkLocation(x, z))) // Any chunks outside the view distance will be removed from the chunk viewdistance list
+                        previousActiveChunk.RemoveAt(i);
                 }
             }
         }
+
+        foreach (ChunkLocation c in previousActiveChunk) // Setting any chunks outside of the list inactive until put back into the list via the view distance
+            voxelChunks[c.x, c.z].isChunkActive = false;    
     }
 
     public byte GetVoxel (Vector3 pos) // This is the new voxel map population function, just works more effectively and optimised to work with world chunk generation
@@ -78,6 +104,7 @@ public class WorldVoxel : MonoBehaviour
     void CreateChunk (int x, int z)
     {
         voxelChunks[x, z] = new VoxelChunk(new ChunkLocation(x, z), this);
+        activeChunk.Add(new ChunkLocation(x, z));
     }
 
     bool isChunkInWorld(ChunkLocation location) // Checking if chunks are in the world and in the correct location based on the voxeldata arrays 

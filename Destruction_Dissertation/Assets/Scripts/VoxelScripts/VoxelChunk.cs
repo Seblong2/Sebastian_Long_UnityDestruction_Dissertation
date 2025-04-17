@@ -171,4 +171,14 @@ public class ChunkLocation // Position for chunk however, not in world space, th
         x = _x;
         z = _z;
     }
+
+    public bool ChunkCheck (ChunkLocation other) // Checking for active chunks based on location to the player
+    {
+        if (other == null)
+            return false;
+        else if (other.x == x && other.z == z)
+            return true;
+        else
+            return false;
+    }
 }
