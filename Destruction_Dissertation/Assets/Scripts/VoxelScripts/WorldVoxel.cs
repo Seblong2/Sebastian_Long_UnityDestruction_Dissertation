@@ -26,7 +26,7 @@ public class WorldVoxel : MonoBehaviour
     {
         UnityEngine.Random.InitState(seed);
 
-        spawnPos = new Vector3((VoxelData.WorldSizeChunks * VoxelData.ChunkWidth) / 2f, VoxelData.ChunkHeight + 5f, (VoxelData.WorldSizeChunks * VoxelData.ChunkWidth) / 2f); // Spawns the player in the center of the amount of chunks
+        spawnPos = new Vector3((VoxelData.WorldSizeChunks * VoxelData.ChunkWidth) / 2f, VoxelData.ChunkHeight - 50f, (VoxelData.WorldSizeChunks * VoxelData.ChunkWidth) / 2f); // Spawns the player in the center of the amount of chunks
         WorldGeneration();
         LastKnownChunkLocation = GetChunkFromPlayerPos(player.position);
         
@@ -36,8 +36,8 @@ public class WorldVoxel : MonoBehaviour
     {
        playerChunkLocation = GetChunkFromPlayerPos(player.position); // Checking for player location to optimise the view distance updating 
 
-        if (!playerChunkLocation.ChunkCheck(LastKnownChunkLocation))
-            CheckingForViewDistance();
+       // if (!playerChunkLocation.ChunkCheck(LastKnownChunkLocation))
+          //  CheckingForViewDistance();
     }
 
     void WorldGeneration()// This has been updated to work with view distance for optimisation purposes
@@ -144,6 +144,21 @@ public class WorldVoxel : MonoBehaviour
         }
 
         return voxelValue;
+    }
+
+    public bool playerVoxelCheck(float _X, float _Y, float _Z) //Check if a voxel is there for character collison purposes
+    {
+        int xCheck = Mathf.FloorToInt(_X);
+        int yCheck = Mathf.FloorToInt(_Y);
+        int zCheck = Mathf.FloorToInt(_Z);
+
+        int xChunk = xCheck / VoxelData.ChunkWidth;
+        int zChunk = zCheck / VoxelData.ChunkWidth;
+
+        xCheck -= (xChunk * VoxelData.ChunkWidth);
+        zCheck -= (zChunk * VoxelData.ChunkWidth);
+
+        return voxelTypes[voxelChunks[xChunk, zChunk].VoxelFaceMap[xCheck, yCheck, zCheck]].isSolid;
     }
 
     void CreateChunk (int x, int z)

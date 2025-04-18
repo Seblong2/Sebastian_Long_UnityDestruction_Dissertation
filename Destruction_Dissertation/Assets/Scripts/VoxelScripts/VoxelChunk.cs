@@ -9,6 +9,7 @@ public class VoxelChunk
     GameObject chunkObject;
     MeshRenderer meshRenderer;
     MeshFilter meshFilter;
+   
 
 
     int vertexIndex = 0;
@@ -16,7 +17,7 @@ public class VoxelChunk
     List<int> triangles = new List<int> ();
     List<Vector2> uvs = new List<Vector2> ();
 
-    byte[,,] VoxelFaceMap = new byte[VoxelData.ChunkWidth, VoxelData.ChunkHeight, VoxelData.ChunkWidth]; // Using a byte instead of a bool for memory optimisation
+    public byte[,,] VoxelFaceMap = new byte[VoxelData.ChunkWidth, VoxelData.ChunkHeight, VoxelData.ChunkWidth]; // Using a byte instead of a bool for memory optimisation
 
     WorldVoxel worldVoxel;
 
@@ -29,6 +30,8 @@ public class VoxelChunk
         meshFilter = chunkObject.AddComponent<MeshFilter> ();
         meshRenderer = chunkObject.AddComponent<MeshRenderer> ();
 
+        
+
         meshRenderer.material = worldVoxel.material;
         chunkObject.transform.SetParent(worldVoxel.transform);
         chunkObject.transform.position = new Vector3(chunkLocation.x * VoxelData.ChunkWidth, 0f, chunkLocation.z * VoxelData.ChunkWidth);
@@ -39,6 +42,8 @@ public class VoxelChunk
         PopulateFaceMap();
         CreateChunkData();
         MeshCreation();
+
+        
     }
 
 
