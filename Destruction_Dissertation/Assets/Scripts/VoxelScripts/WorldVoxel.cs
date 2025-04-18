@@ -94,7 +94,7 @@ public class WorldVoxel : MonoBehaviour
             voxelChunks[c.x, c.z].isChunkActive = false;    
     }
 
-    public byte GetVoxel (Vector3 pos) // This is the new voxel map population function, just works more effectively and optimised to work with world chunk generation
+    public byte GetVoxel(Vector3 pos) // This is the new voxel map population function, just works more effectively and optimised to work with world chunk generation
     {
         /* BLOCK IDS
          * 0 = Air
@@ -104,7 +104,7 @@ public class WorldVoxel : MonoBehaviour
          * 4 = Sand
          * 5 = Dirt
          * */
-        
+
 
         int yPos = Mathf.FloorToInt(pos.y);
 
@@ -120,15 +120,30 @@ public class WorldVoxel : MonoBehaviour
         /* TERRAIN PASS */
 
         int heightTerrain = Mathf.FloorToInt(biome.terrainHeight * VoxelNoise.GetPerlin2D(new Vector2(pos.x, pos.z), 0, biome.terrainScale)) + biome.solidGroundHeight;
+        byte voxelValue = 0;
 
         if (yPos == heightTerrain)
-            return 3;
+            voxelValue = 3;
         else if (yPos < heightTerrain && yPos > heightTerrain - 4)
-            return 5;
+            voxelValue = 5;
         else if (yPos > heightTerrain)
             return 0;
         else
-            return 2;
+            voxelValue = 2;
+
+        /* SECONDARY PASS */
+
+        if (voxelValue == 2)
+        {
+            foreach (Lode lode in biome.lodes)
+            {
+                if (yPos > lode.minHeight && yPos < lode.maxHeight)
+                    if (VoxelNoise.GetPerlin3D(pos, lode.noiseOffset, lode.scale, lode.threshold))
+                        voxelValue = lode.blockID;
+            }
+        }
+
+        return voxelValue;
     }
 
     void CreateChunk (int x, int z)
