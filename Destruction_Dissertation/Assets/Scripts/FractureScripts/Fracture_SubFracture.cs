@@ -20,8 +20,18 @@ public class Fracture_SubFracture : MonoBehaviour
     public void ApplyForce(Vector3 force)
     {
         Rigidbody rb = GetComponent<Rigidbody>();
-        rb.isKinematic = false;
-        rb.AddForce(force);
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.AddForce(force, ForceMode.Impulse);
+        }
+
+        Rigidbody[] cells = GetComponentsInChildren<Rigidbody>();
+        foreach (var cell in cells)
+        {
+            cell.isKinematic = false;
+            cell.AddForce(force, ForceMode.Impulse);
+        }
     }
 
     private void Update()

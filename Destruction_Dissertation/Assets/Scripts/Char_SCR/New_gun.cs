@@ -8,6 +8,8 @@ public class New_gun : MonoBehaviour
     public Camera cam;
 
     public WorldGenMarching world;
+    public GameObject bulletPrefab;
+    public float projectileForce = 1000f;
 
 
 
@@ -35,6 +37,12 @@ public class New_gun : MonoBehaviour
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.Space)) 
+        {
+            GameObject bullet = Instantiate(bulletPrefab, transform.position, transform.rotation);
+            bullet.GetComponent<Rigidbody>().AddForce(transform.forward *projectileForce, ForceMode.Impulse);
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f)); //Ray in the center of viewpoint from camera
@@ -55,8 +63,8 @@ public class New_gun : MonoBehaviour
 
                     if (fracturedPieces != null) 
                     {
-                        Vector3 forceDirection = (hit.transform.position - hit.point).normalized;
-                        float forceAmount = 10f;
+                        Vector3 forceDirection = (hit.point - hit.transform.position).normalized;
+                        float forceAmount = 100f;
 
                         fracturedPieces.ApplyForce(forceDirection * forceAmount);
 

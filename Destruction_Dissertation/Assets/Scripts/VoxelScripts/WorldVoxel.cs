@@ -36,8 +36,8 @@ public class WorldVoxel : MonoBehaviour
     {
        playerChunkLocation = GetChunkFromPlayerPos(player.position); // Checking for player location to optimise the view distance updating 
 
-       // if (!playerChunkLocation.ChunkCheck(LastKnownChunkLocation))
-          //  CheckingForViewDistance();
+        if (!playerChunkLocation.ChunkCheck(LastKnownChunkLocation))
+            CheckingForViewDistance();
     }
 
     void WorldGeneration()// This has been updated to work with view distance for optimisation purposes
