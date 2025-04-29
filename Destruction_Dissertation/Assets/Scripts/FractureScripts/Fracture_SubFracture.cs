@@ -36,7 +36,7 @@ public class Fracture_SubFracture : MonoBehaviour
 
     private void Update()
     {
-        for (int i = 0; i < connections.Count; i++) // Checking for isolation in the fractions to ensure the one that is hit isnt isolated
+        for (int i = 0; i < connections.Count; i++) // Checking for isolation in the fractions 
         {
             if (!connections[i].isGround && !connections[i].isConnect)
             {
@@ -46,7 +46,7 @@ public class Fracture_SubFracture : MonoBehaviour
 
         bool groundedChecker = false;
 
-        for (int i = 0; i < connections.Count; i++) //Make sure ground is connected even if it seems impossible 
+        for (int i = 0; i < connections.Count; i++) //Make sure ground is connected through adjacent cells
         {
             if (connections[i].isGround)
             {
