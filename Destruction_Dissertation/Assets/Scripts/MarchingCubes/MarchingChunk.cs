@@ -1,8 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MarchingChunk 
+public class MarchingChunk
 {
     List<Vector3> vertices = new List<Vector3>();
     List<int> triangles = new List<int>();
@@ -11,61 +10,98 @@ public class MarchingChunk
     int height { get { return GameData.ChunkHeight; } }
     float terrainSurface { get { return GameData.terrainSurface; } }
 
-    
+
 
     public GameObject chunkObject;
     MeshFilter meshFilter;
     MeshCollider meshCollider;
     MeshRenderer meshRenderer;
     public float DestructionRadius = 10f;
+    public WorldGenMarching world;
 
     Vector3Int ChunkPos;
 
 
     float[,,] terrainMap;
 
-   
+    float Perlin3D(float x, float y, float z, float scale)
+    {
+        float xy = Mathf.PerlinNoise(x * scale, y * scale);
+        float yz = Mathf.PerlinNoise(y * scale, z * scale);
+        float xz = Mathf.PerlinNoise(x * scale, z * scale);
+        float yx = Mathf.PerlinNoise(y * scale, x * scale);
+        float zy = Mathf.PerlinNoise(z * scale, y * scale);
+        float zx = Mathf.PerlinNoise(z * scale, x * scale);
 
-    
+        return (xy + yz + xz + yx + zy + zx) / 6f;
+    }
 
-    public MarchingChunk(Vector3Int _Position)
+
+
+    public MarchingChunk(Vector3Int _Position, float[,,] sharedmap)
     {
         chunkObject = new GameObject();
         chunkObject.name = string.Format("Chunk {0}, {1}", _Position.x, _Position.z);
         ChunkPos = _Position;
         chunkObject.transform.position = ChunkPos;
-        meshFilter = chunkObject.AddComponent< MeshFilter>();
-        meshRenderer = chunkObject.AddComponent< MeshRenderer>();
+        meshFilter = chunkObject.AddComponent<MeshFilter>();
+        meshRenderer = chunkObject.AddComponent<MeshRenderer>();
         meshCollider = chunkObject.AddComponent<MeshCollider>();
         meshRenderer.material = Resources.Load<Material>("Materials/Chunk_M");
         chunkObject.transform.tag = "Terrain";
-        terrainMap = new float[width + 1, height + 1, width + 1];
+        terrainMap = sharedmap;
 
         PopulateTerrain();
         CreateMeshData();
-      
+
     }
 
 
     void PopulateTerrain()
     {
-        for(int x = 0; x < width + 1; x++)
+        for (int x = 0; x < width + 1; x++)
         {
             for (int y = 0; y < height + 1; y++)
             {
                 for (int z = 0; z < width + 1; z++)
                 {
-                    float thisHeight;
+                   
+                    float worldX = x + ChunkPos.x;
+                    float worldY = y + ChunkPos.y;
+                    float worldZ = z + ChunkPos.z;
 
-                    thisHeight = GameData.GetTerrainHeight(x + ChunkPos.x, z + ChunkPos.z);
+                    
 
-                    terrainMap[x, y, z] = (float)y - thisHeight;
+                    float surfaceHeight = GameData.GetTerrainHeight((int)worldX, (int)worldZ);
+                    float surfaceDensity = worldY - surfaceHeight;
+                   
+
+                    float cavenoise = Perlin3D(worldX, worldY, worldZ, 0.05f);
+                    float caveMask = Mathf.Clamp01(cavenoise - 0.6f) * 2f;
+
+                    float density = surfaceDensity - caveMask;
+
+                    density = Mathf.Clamp(density, -1f, 1f);
+
+                    int gx = x + ChunkPos.x + GameData.TerrainMapOffset.x;
+                    int gy = y + ChunkPos.y + GameData.TerrainMapOffset.y;
+                    int gz = z + ChunkPos.z + GameData.TerrainMapOffset.z;
+
+                    if (gx >= 0 && gx < GameData.GlobalTerrainMap.GetLength(0) &&
+                        gy >= 0 && gy < GameData.GlobalTerrainMap.GetLength(1) &&
+                        gz >= 0 && gz < GameData.GlobalTerrainMap.GetLength(2))
+                    {
+                        GameData.GlobalTerrainMap[gx, gy, gz] = density;
+                    }
+
+                    // GameData.GlobalTerrainMap[x + ChunkPos.x + GameData.TerrainMapOffset.x, y + ChunkPos.y + GameData.TerrainMapOffset.y, z + ChunkPos.z + GameData.TerrainMapOffset.z]  = density;
+
                 }
             }
         }
     }
 
-    void CreateMeshData()
+   public void CreateMeshData()
     {
         for (int x = 0; x < width; x++)
         {
@@ -73,7 +109,7 @@ public class MarchingChunk
             {
                 for (int z = 0; z < width; z++)
                 {
-                   
+
                     MarchCube(new Vector3Int(x, y, z));
                 }
             }
@@ -84,7 +120,7 @@ public class MarchingChunk
     int GetCubeConfig(float[] cube)
     {
         int configIndex = 0;
-        for(int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; i++)
         {
             if (cube[i] > terrainSurface)
                 configIndex |= 1 << i;
@@ -95,13 +131,27 @@ public class MarchingChunk
 
     float SampleTerrain(Vector3Int point)
     {
-        return terrainMap[point.x, point.y, point.z];
+        int gx = point.x + ChunkPos.x + GameData.TerrainMapOffset.x;
+        int gy = point.y + ChunkPos.y + GameData.TerrainMapOffset.y;
+        int gz = point.z + ChunkPos.z + GameData.TerrainMapOffset.z;
+
+        if (gx >= 0 && gx < GameData.GlobalTerrainMap.GetLength(0) &&
+                   gy >= 0 && gy < GameData.GlobalTerrainMap.GetLength(1) &&
+                   gz >= 0 && gz < GameData.GlobalTerrainMap.GetLength(2))
+        {
+            return GameData.GlobalTerrainMap[gx, gy, gz];
+        }
+        else
+        {
+            return 1f;
+        }
+
     }
 
-    int VertForIndice (Vector3 vert)
+    int VertForIndice(Vector3 vert)
     {
         //Loop through all vertices in the current vertices list
-        for (int i = 0; i < vertices.Count; i ++)
+        for (int i = 0; i < vertices.Count; i++)
         {
             //If vert matches then return the index to avoid duplication of vertices
             if (vertices[i] == vert)
@@ -144,35 +194,35 @@ public class MarchingChunk
 
                 Vector3 vertPos;
 
-              
-                    //Getting terrain values at the end of the current edge from the cube array that is created about
-                    float vert1Sample = cube[GameData.EdgeIndexes[indice, 0]];
-                    float vert2Sample = cube[GameData.EdgeIndexes[indice, 1]];
 
-                    //Calucations for the difference between terrain values
-                    float difference = vert2Sample - vert1Sample;
+                //Getting terrain values at the end of the current edge from the cube array that is created about
+                float vert1Sample = cube[GameData.EdgeIndexes[indice, 0]];
+                float vert2Sample = cube[GameData.EdgeIndexes[indice, 1]];
 
-                    //If the difference is 0 then pass terrain through middle
-                    if (difference == 0)
-                        difference = terrainSurface;
-                    else
-                        difference = (terrainSurface - vert1Sample) / difference;
+                //Calucations for the difference between terrain values
+                float difference = vert2Sample - vert1Sample;
 
-                    //Calculating the point along the cube edge that passes through
-                    vertPos = vert1 + ((vert2 - vert1) * difference);
-                
-             
-                    triangles.Add(VertForIndice(vertPos));
-                
+                //If the difference is 0 then pass terrain through middle
+                if (difference == 0)
+                    difference = terrainSurface;
+                else
+                    difference = (terrainSurface - vert1Sample) / difference;
 
-             
+                //Calculating the point along the cube edge that passes through
+                vertPos = vert1 + ((vert2 - vert1) * difference);
+
+
+                triangles.Add(VertForIndice(vertPos));
+
+
+
                 edgeIndex++;
 
             }
         }
     }
 
-    void ClearMeshData()
+    public void ClearMeshData()
     {
         vertices.Clear();
         triangles.Clear();
@@ -180,6 +230,7 @@ public class MarchingChunk
 
     void BuildMesh()
     {
+        Debug.Log($"Vertices: {vertices.Count}, Triangles: {triangles.Count}");
         Mesh mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles.ToArray();
@@ -188,23 +239,119 @@ public class MarchingChunk
         meshCollider.sharedMesh = mesh;
     }
 
-    public void DestroyTerrain(Vector3 pos)
+    public void TerrainDestroy(Vector3 pos)
     {
-        Vector3Int v3Int = new Vector3Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
-        v3Int -= ChunkPos;
-        terrainMap[v3Int.x, v3Int.y, v3Int.z] = 1f;
-        ClearMeshData();
-        CreateMeshData();
+        Vector3 local = pos - ChunkPos;
+        int radius = 3;
+        bool touchedEdge = false;
+
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int y = -radius; y <= radius; y++)
+            {
+                for (int z = -radius; z <= radius; z++)
+                {
+                    Vector3Int point = new Vector3Int(
+                        Mathf.FloorToInt(local.x) + x,
+                        Mathf.FloorToInt(local.y) + y,
+                        Mathf.FloorToInt(local.z) + z
+                        );
+
+                    if (InBounds(point))
+                    {
+                        float distance = Vector3.Distance(point, local);
+                        if (distance < radius)
+                        {
+                            int gx = point.x + ChunkPos.x + GameData.TerrainMapOffset.x;
+                            int gy = point.y + ChunkPos.y + GameData.TerrainMapOffset.y;
+                            int gz = point.z + ChunkPos.z + GameData.TerrainMapOffset.z;
+
+                            if (gx >= 0 && gx < GameData.GlobalTerrainMap.GetLength(0) &&
+                                 gy >= 0 && gy < GameData.GlobalTerrainMap.GetLength(1) &&
+                                    gz >= 0 && gz < GameData.GlobalTerrainMap.GetLength(2))
+                            {
+                                GameData.GlobalTerrainMap[gx, gy, gz] = 1f;
+                            }
+                        }
+
+
+                        if (point.x == 0 || point.x == width ||
+                            point.y == 0 || point.y == height ||
+                            point.z == 0 || point.z == width)
+                        {
+                            touchedEdge = true;
+                        }
+                    }
+                }
+            }
+        }
+       
+        if (world != null)
+        {
+            world.RebuildNeighbourChunks(ChunkPos, includeSelf: true);
+        }
+    }
+    public void TerrainPlace(Vector3 pos)
+    {
+        Vector3 local = pos - ChunkPos;
+        int radius = 3;
+        bool touchedEdge = false;
+
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int y = -radius; y <= radius; y++)
+            {
+                for (int z = -radius; z <= radius; z++)
+                {
+                    Vector3Int point = new Vector3Int(
+                        Mathf.FloorToInt(local.x) + x,
+                        Mathf.FloorToInt(local.y) + y,
+                        Mathf.FloorToInt(local.z) + z
+                        );
+
+                    if (InBounds(point))
+                    {
+                        float distance = Vector3.Distance(point, local);
+                        if (distance < radius)
+                        {
+                            int gx = point.x + ChunkPos.x + GameData.TerrainMapOffset.x;
+                            int gy = point.y + ChunkPos.y + GameData.TerrainMapOffset.y;
+                            int gz = point.z + ChunkPos.z + GameData.TerrainMapOffset.z;
+
+                            if (gx >= 0 && gx < GameData.GlobalTerrainMap.GetLength(0) &&
+                                 gy >= 0 && gy < GameData.GlobalTerrainMap.GetLength(1) &&
+                                    gz >= 0 && gz < GameData.GlobalTerrainMap.GetLength(2))
+                            {
+                                GameData.GlobalTerrainMap[gx, gy, gz] = 0f;
+                            }
+                        }
+
+                        if (point.x == 0 || point.x == width ||
+                          point.y == 0 || point.y == height ||
+                          point.z == 0 || point.z == width)
+                        {
+                            touchedEdge = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        
+
+        if (world != null)
+        {
+            world.RebuildNeighbourChunks(ChunkPos, includeSelf: true);
+        }
     }
 
-    public void PlaceTerrain(Vector3 pos)
+
+
+
+    bool InBounds(Vector3Int point)
     {
-        Vector3Int v3Int = new Vector3Int(Mathf.CeilToInt(pos.x), Mathf.CeilToInt(pos.y), Mathf.CeilToInt(pos.z));
-        v3Int -= ChunkPos;
-        terrainMap[v3Int.x, v3Int.y, v3Int.z] = 0f;
-        CreateMeshData();
+        return point.x >= 0 && point.x < width + 1 &&
+            point.y >= 0 && point.y < height + 1 &&
+            point.z >= 0 && point.z < width + 1;
     }
-
-   
-
 }

@@ -4,24 +4,52 @@ using UnityEngine;
 public class WorldGenMarching : MonoBehaviour
 {
     public int WorldSizeInChunks = 10;
+    private HashSet<Vector3Int> chunksRebuiltinFrame = new HashSet<Vector3Int>();
+    public int HeightInChunksWorld = 2;
+    
   
 
     Dictionary<Vector3Int, MarchingChunk> chunks = new Dictionary<Vector3Int, MarchingChunk>();
    
     void Start()
     {
+       
+        int mapWidth = WorldSizeInChunks * GameData.ChunkWidth + 1;
+        int mapHeight = HeightInChunksWorld * GameData.ChunkHeight + 1;
+        int mapDepth = WorldSizeInChunks * GameData.ChunkWidth + 1;
+
+        GameData.GlobalTerrainMap = new float[mapWidth, mapHeight, mapDepth];
+        GameData.TerrainMapOffset = new Vector3Int(mapWidth / 2, 0, mapDepth / 2);
+
         Generate();
     }
 
     void Generate()
     {
+        int totalWorldHeight = HeightInChunksWorld * GameData.ChunkHeight;
+        
+        int centerworld = (WorldSizeInChunks * GameData.ChunkWidth) / 2;
+
         for (int x = 0; x < WorldSizeInChunks; x++)
         {
             for (int z = 0; z < WorldSizeInChunks; z++)
+
             {
-                Vector3Int chunkPos = new Vector3Int(x * GameData.ChunkWidth, 0, z * GameData.ChunkWidth);
-                chunks.Add(chunkPos, new MarchingChunk(chunkPos));
-                chunks[chunkPos].chunkObject.transform.SetParent(transform);
+                for (int y = 0; y < HeightInChunksWorld; y++)
+                {
+                    int worldX = x * GameData.ChunkWidth - centerworld;
+                    int worldY = y * GameData.ChunkHeight - totalWorldHeight / 2;
+                    int worldZ = z * GameData.ChunkWidth - centerworld;
+
+                    Vector3Int chunkPos = new Vector3Int(worldX, worldY, worldZ);
+
+                    MarchingChunk chunk = new MarchingChunk(chunkPos, GameData.GlobalTerrainMap);
+
+                    chunk.world = this;
+
+                    chunks.Add(chunkPos, chunk);
+                    chunk.chunkObject.transform.SetParent(transform);
+                }
             }
         }
 
@@ -30,14 +58,58 @@ public class WorldGenMarching : MonoBehaviour
 
     }
 
+    
+
     public MarchingChunk GetChunkFromV3 (Vector3 pos)
     {
-        int x = (int)pos.x;
-        int y = (int)pos.y;
-        int z = (int)pos.z;
+        Vector3Int key = new Vector3Int(
+            Mathf.FloorToInt(pos.x / GameData.ChunkWidth) * GameData.ChunkWidth,
+            0,
+            Mathf.FloorToInt(pos.z / GameData.ChunkWidth) * GameData.ChunkWidth);
 
-        return chunks[new Vector3Int(x, y, z)];
+        return chunks.TryGetValue (key, out var chunk) ? chunk : null;
 
+    }
+
+    public void RebuildNeighbourChunks(Vector3Int chunkPos, bool includeSelf = false)
+    {
+        Vector3Int[] directions = new Vector3Int[]
+        {
+            new Vector3Int(GameData.ChunkWidth, 0, 0),
+            new Vector3Int(-GameData.ChunkWidth, 0, 0),
+            new Vector3Int(0, 0, GameData.ChunkWidth),
+            new Vector3Int(0, 0, -GameData.ChunkWidth),
+        };
+
+        if (includeSelf && !chunksRebuiltinFrame.Contains(chunkPos))
+        {
+            if (chunks.TryGetValue(chunkPos, out var selfChunk))
+            {
+                selfChunk.ClearMeshData();
+                selfChunk.CreateMeshData();
+                chunksRebuiltinFrame.Add(chunkPos);
+            }
+        }
+
+        foreach (var dir in directions)
+        {
+            Vector3Int neighbourPos = chunkPos + dir;
+
+            if (chunksRebuiltinFrame.Contains(neighbourPos))
+                continue;
+
+            if (chunks.TryGetValue(neighbourPos, out var neighbour))
+            {
+                neighbour.ClearMeshData();
+                neighbour.CreateMeshData();
+                chunksRebuiltinFrame.Add(neighbourPos);
+            }
+        }
+    }
+
+    private void LateUpdate()
+    {
+        chunksRebuiltinFrame.Clear();
     }
 
 

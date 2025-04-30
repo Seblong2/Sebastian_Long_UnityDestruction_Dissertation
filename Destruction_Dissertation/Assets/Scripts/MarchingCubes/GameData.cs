@@ -4,16 +4,19 @@ public static class GameData
 {
 
 
-    public static float terrainSurface = 0.5f;
+    public static float terrainSurface = 0.0f;
     public static int ChunkWidth = 16;
-    public static int ChunkHeight = 250;
+    public static int ChunkHeight = 100;
+    public static float[,,] GlobalTerrainMap;
+    public static Vector3Int TerrainMapOffset;
 
-    public static float BaseTerrainHeight = 0; // Minimum base height
-    public static float TerrainHeightRange = 10f; // Max height (about base height) our terrain can be, Basically the hills about the ground
+    public static float BaseTerrainHeight = 0f; // Minimum base height
+    public static float TerrainHeightRange = 60f; // Max height (about base height) our terrain can be, Basically the hills about the ground
 
     public static float GetTerrainHeight (int x, int z)
     {
-        return (float)TerrainHeightRange * Mathf.PerlinNoise((float)x / 16f * 1.5f + 0.001f, (float)z / 16f * 1.5f + 0.001f) + BaseTerrainHeight;
+        float height = Mathf.PerlinNoise(x * 0.01f, z * 0.01f) * TerrainHeightRange + BaseTerrainHeight;
+        return height;
     }
 
 
