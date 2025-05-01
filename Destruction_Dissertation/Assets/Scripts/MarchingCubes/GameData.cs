@@ -1,3 +1,5 @@
+using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 
 public static class GameData 
@@ -12,6 +14,43 @@ public static class GameData
 
     public static float BaseTerrainHeight = 0f; // Minimum base height
     public static float TerrainHeightRange = 60f; // Max height (about base height) our terrain can be, Basically the hills about the ground
+
+    public static NativeArray<int3> CornerTableNative;
+    public static NativeArray<int2> EdgeIndexesNative;
+    public static NativeArray<int> TriangleTableFlatNative;
+
+
+    public static void InitNativeArrayTables()
+    {
+        if (!CornerTableNative.IsCreated)
+            CornerTableNative = new NativeArray<int3>(8, Allocator.Persistent);
+
+        for (int i = 0; i < 8; i++)
+            CornerTableNative[i] = new int3(CornerTable[i].x, CornerTable[i].y, CornerTable[i].z);
+
+        if (!EdgeIndexesNative.IsCreated)
+            EdgeIndexesNative = new NativeArray<int2>(12, Allocator.Persistent);
+
+        for (int i = 0; i < 12; i++)
+            EdgeIndexesNative[i] = new int2(EdgeIndexes[i, 0], EdgeIndexes[i, 1]);
+
+        if (!TriangleTableFlatNative.IsCreated)
+            TriangleTableFlatNative = new NativeArray<int>(256 * 15, Allocator.Persistent);
+
+        for (int i = 0; i < 256; i++)
+            for (int j = 0; j < 15; j++)
+                TriangleTableFlatNative[i * 15 + j] = TriangleTable[i, j];
+    }
+
+    public static void DisposeTables()
+    {
+        if(CornerTableNative.IsCreated)
+            CornerTableNative.Dispose();
+        if(EdgeIndexesNative.IsCreated)
+            EdgeIndexesNative.Dispose();
+        if(TriangleTableFlatNative.IsCreated)
+            TriangleTableFlatNative.Dispose();
+    }
 
     public static float GetTerrainHeight (int x, int z)
     {

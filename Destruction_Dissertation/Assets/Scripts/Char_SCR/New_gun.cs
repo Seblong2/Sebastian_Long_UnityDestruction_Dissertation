@@ -31,7 +31,9 @@ public class New_gun : MonoBehaviour
 
                 if (hit.transform.tag == "Terrain")
                 {
-                    world.GetChunkFromV3(hit.transform.position).TerrainPlace(hit.point);
+                    MarchingChunk chunk = world.GetChunkFromV3(hit.transform.position);
+                    if (chunk != null)
+                        StartCoroutine(chunk.ApplyJob(hit.point, isPlacing: true));
 
                 }
             }
@@ -53,7 +55,9 @@ public class New_gun : MonoBehaviour
 
                 if (hit.transform.tag == "Terrain")
                 {
-                    world.GetChunkFromV3(hit.transform.position).TerrainDestroy(hit.point);
+                    MarchingChunk chunk = world.GetChunkFromV3(hit.transform.position);
+                    if (chunk != null)
+                        StartCoroutine(chunk.ApplyJob(hit.point, isPlacing: false));
 
                 }
                 if (hit.transform.CompareTag ("FractureWall"))

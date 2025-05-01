@@ -1,4 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class MarchingChunk
@@ -9,6 +13,8 @@ public class MarchingChunk
     int width { get { return GameData.ChunkWidth; } }
     int height { get { return GameData.ChunkHeight; } }
     float terrainSurface { get { return GameData.terrainSurface; } }
+
+    float[,,] localData;
 
 
 
@@ -38,11 +44,12 @@ public class MarchingChunk
 
 
 
-    public MarchingChunk(Vector3Int _Position, float[,,] sharedmap)
+    public MarchingChunk(Vector3Int _Position, float[,,] sharedmap, WorldGenMarching worldRef)
     {
         chunkObject = new GameObject();
         chunkObject.name = string.Format("Chunk {0}, {1}", _Position.x, _Position.z);
         ChunkPos = _Position;
+        this.world = worldRef;
         chunkObject.transform.position = ChunkPos;
         meshFilter = chunkObject.AddComponent<MeshFilter>();
         meshRenderer = chunkObject.AddComponent<MeshRenderer>();
@@ -52,13 +59,129 @@ public class MarchingChunk
         terrainMap = sharedmap;
 
         PopulateTerrain();
-        CreateMeshData();
+        world.StartCoroutine(MeshingJob());
 
     }
 
+    public System.Collections.IEnumerator RebuildMeshAsync()
+    {
+        ClearMeshData();
+        yield return MeshingJob();
+
+
+        world.StartCoroutine(MeshingJob());
+        yield return null;
+
+        yield break;
+    }
+
+    public IEnumerator ApplyJob(float3 worldHitPoint, bool isPlacing)
+    {
+        int size = (width + 1) * (height + 1) * (width + 1);
+        NativeArray<float> localDataCopy = new NativeArray<float>(size, Allocator.TempJob);
+        NativeArray<int> flag = new NativeArray<int>(1, Allocator.TempJob);
+
+        
+        for (int x = 0; x < width + 1; x++)
+            for (int y = 0; y < height + 1; y++)
+                for (int z = 0; z < width + 1; z++)
+                {
+                    int i = x * (height + 1) * (width + 1) + y * (width + 1) + z;
+                    localDataCopy[i] = localData[x, y, z];
+                }
+        float3 localHit = worldHitPoint - new float3(ChunkPos.x, ChunkPos.y, ChunkPos.z);
+
+        EditJob job = new EditJob
+        {
+            radiusEdit = 3,
+            centerEdit = localHit,
+            isPlacing = isPlacing,
+            localTerrain = localDataCopy,
+            flag = flag,
+            width = width,
+            height = height
+        };
+
+        JobHandle handle = job.Schedule();
+        handle.Complete();
+
+        if (flag[0] == 1)
+        {
+
+            for (int x = 0; x < width + 1; x++)
+                for (int y = 0; y < height + 1; y++)
+                    for (int z = 0; z < width + 1; z++)
+                    {
+                        int i = x * (height + 1) * (width + 1) + y * (width + 1) + z;
+                        localData[x, y, z] = localDataCopy[i];
+                    }
+
+            
+
+            yield return world.StartCoroutine(RebuildMeshAsync());
+        }
+        localDataCopy.Dispose();
+        flag.Dispose();
+    }
+
+    public IEnumerator MeshingJob()
+    {
+        //Input Prep
+        int sizeX = width + 1;
+        int sizeY = height + 1;
+        int sizeZ = width + 1;
+        int totalSize = sizeX * sizeY * sizeZ;
+
+        NativeArray<float> localDataFlat = new NativeArray<float>(totalSize, Allocator.TempJob);
+        for (int x = 0; x < width + 1; x++)
+            for (int y = 0; y < height + 1; y++)
+                for (int z = 0; z < width + 1; z++)
+                {
+                    int i = x * sizeY * sizeZ + y * sizeZ + z;
+                    localDataFlat[i] = localData[x, y, z];
+                }
+
+        // Output buffer preps
+        NativeList<Vector3> verts = new NativeList<Vector3>(Allocator.TempJob);
+        NativeList<int> tris = new NativeList<int>(Allocator.TempJob);
+
+        //Prepare Job
+        MarchingJob meshJob = new MarchingJob
+        {
+            localData = localDataFlat,
+            width = width,
+            height = height,
+            terrainSurface = terrainSurface,
+            vertices = verts,
+            triangles = tris,
+            CornerTable = GameData.CornerTableNative,
+            EdgeIndexes = GameData.EdgeIndexesNative,
+            TriangleTableFlat = GameData.TriangleTableFlatNative
+
+        };
+
+        JobHandle meshHandle = meshJob.Schedule();
+        meshHandle.Complete();
+
+        //Mesh Conversion
+        Mesh mesh = new Mesh();
+        mesh.SetVertices(verts.AsArray().ToArray());
+        mesh.SetTriangles(tris.AsArray().ToArray(), 0);
+        mesh.RecalculateNormals();
+        meshFilter.mesh = mesh;
+        meshCollider.sharedMesh = mesh;
+
+        //Job Cleanup
+        localDataFlat.Dispose();
+        verts.Dispose();
+        tris.Dispose();
+
+        yield break;
+    }
 
     void PopulateTerrain()
     {
+        localData = new float[width + 1, height + 1, width + 1];
         for (int x = 0; x < width + 1; x++)
         {
             for (int y = 0; y < height + 1; y++)
@@ -83,6 +206,8 @@ public class MarchingChunk
 
                     density = Mathf.Clamp(density, -1f, 1f);
 
+                    localData[x, y, z] = density;
+
                     int gx = x + ChunkPos.x + GameData.TerrainMapOffset.x;
                     int gy = y + ChunkPos.y + GameData.TerrainMapOffset.y;
                     int gz = z + ChunkPos.z + GameData.TerrainMapOffset.z;
@@ -101,7 +226,7 @@ public class MarchingChunk
         }
     }
 
-   public void CreateMeshData()
+  /* public void CreateMeshData() // OLD CODE DUE TO MOVE TO JOB SYSTEM
     {
         for (int x = 0; x < width; x++)
         {
@@ -115,7 +240,7 @@ public class MarchingChunk
             }
         }
         BuildMesh();
-    }
+    } */
 
     int GetCubeConfig(float[] cube)
     {
